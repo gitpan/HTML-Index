@@ -12,10 +12,13 @@ use lib 't';
 use Tests;
 
 my $store = HTML::Index::Store::BerkeleyDB->new( DB => 'db', REFRESH => 1, VERBOSE => $opt_verbose );
-for ( map { HTML::Index::Document->new( path => $_, parser => 'regex' ) } @test_files )
-{
-    $store->index_document( $_ );
-}
+my $doc = HTML::Index::Document->new( path => "eg/test5.html" );
+$store->index_document( $doc );
+undef $store;
+$store = HTML::Index::Store::BerkeleyDB->new( DB => 'db', VERBOSE => $opt_verbose );
+$doc = HTML::Index::Document->new( path => 'eg/test6.html' );
+$store->index_document( $doc );
 undef $store;
 $store = HTML::Index::Store::BerkeleyDB->new( DB => 'db', MODE => 'r', VERBOSE => $opt_verbose );
-for ( @tests ) { is_deeply( [ $store->search( $_->{q} ) ], $_->{paths} ); }
+my @r = $store->search( 'simple' );
+is_deeply( \@r, [ 'eg/test5.html', 'eg/test6.html' ] );

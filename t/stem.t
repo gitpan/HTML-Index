@@ -11,7 +11,14 @@ use HTML::Index::Store::BerkeleyDB;
 use lib 't';
 use Tests;
 
-my $store = HTML::Index::Store::BerkeleyDB->new( DB => 'db', REFRESH => 1, VERBOSE => $opt_verbose );
+@tests = (
+    { q => 'stuff', paths => [ 'eg/test1.html', 'eg/test2.html', 'eg/test4.html', ] },
+    { q => 'differing', paths => [ 'eg/test3.html' ] },
+    { q => 'stuffs', paths => [ 'eg/test1.html', 'eg/test2.html', 'eg/test4.html', ] },
+    { q => 'differs', paths => [ 'eg/test3.html' ] },
+);
+
+my $store = HTML::Index::Store::BerkeleyDB->new( DB => 'db', STEM => 'en-uk', REFRESH => 1, VERBOSE => $opt_verbose );
 for ( map { HTML::Index::Document->new( path => $_ ) } @test_files )
 {
     $store->index_document( $_ );

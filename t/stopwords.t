@@ -1,19 +1,17 @@
-# Before `make install' is performed this script should be runnable with
-# `make test'. After `make install' it should work as `perl test.pl'
+#!/bin/env perl -w
+# vim:filetype=perl
 
-######################### We start with some black magic to print on failure.
+use strict;
+use warnings;
 
-# Change 1..1 below to 1..last_test_to_print .
-# (It may become useful if the test is moved to ./t subdirectory.)
-
-use HTML::Index::Create;
-use HTML::Index::Search;
+use Test::More qw( no_plan );
+use lib 'blib/lib';
 use HTML::Index::Document;
 use HTML::Index::Store::BerkeleyDB;
+use lib 't';
+use Tests;
 
-BEGIN { do 't/tests.pl'; }
-
-@my_tests = (
+@tests = (
     { q => 'some', paths => [ ] },
     { q => 'some AND NOT some', paths => [ ] },
     { q => 'some OR stuff', paths => [ 'eg/test1.html', 'eg/test2.html', 'eg/test4.html', ] },
@@ -23,32 +21,12 @@ BEGIN { do 't/tests.pl'; }
     { q => 'different', paths => [ 'eg/test3.html' ] },
 );
 
-my $store = HTML::Index::Store::BerkeleyDB->new(
-    STOP_WORD_FILE => 'eg/stopwords.txt',
-    DB => 'db/stopwords',
-);
-my $indexer = HTML::Index::Create->new( 
-    STORE => $store,
-    REFRESH => 1,
-) or die "Failed to create HTML::Index::Create object\n";
-for ( @test_files )
+my $store = HTML::Index::Store::BerkeleyDB->new( DB => 'db', REFRESH => 1, STOP_WORD_FILE => 'eg/stopwords.txt', VERBOSE => $opt_verbose );
+for ( map { HTML::Index::Document->new( path => $_ ) } @test_files )
 {
-    my $doc = HTML::Index::Document->new( path => $_ );
-    $indexer->index_document( $doc );
+    $store->index_document( $_ );
 }
-undef $indexer;
-my $searcher = HTML::Index::Search->new( 
-    STORE => $store,
-) or die "Failed to create HTML::Index::Search object\n";
+undef $store;
+$store = HTML::Index::Store::BerkeleyDB->new( DB => 'db', MODE => 'r', VERBOSE => $opt_verbose );
+for ( @tests ) { is_deeply( [ $store->search( $_->{q} ) ], $_->{paths} ); }
 
-print "1..", scalar( @my_tests ), "\n";
-for my $test ( @my_tests )
-{
-    do_search_test( $searcher, $test );
-}
-
-######################### End of black magic.
-
-# Insert your test code below (better if it prints "ok 13"
-# (correspondingly "not ok 13") depending on the success of chunk 13
-# of the test code):

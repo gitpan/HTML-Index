@@ -18,10 +18,9 @@ HTML::Index::DataDumper) are included in the distribution.
 The modules can be used to index any HTML documents - whether stored as
 files, or in a database. They support the use of stopword lists, soundex
 searches, compression of the inverted indexes using Compress::Zlib, and
-re-indexing of documents that have changed. A CGI search interface, which
-can be customized using on HTML::Template templates, is also provided.
-Search queries can be expressed as compound Boolean expressions, composed of
-keywords, parentheses, and logical operators (OR, AND, NOT).
+re-indexing of documents that have changed.  Search queries can be expressed as
+compound Boolean expressions, composed of keywords, parentheses, and logical
+operators (OR, AND, NOT).
 
 Installation
 ------------

@@ -4,13 +4,23 @@ use strict;
 use warnings;
 
 use Class::Struct;
+use HTML::Entities qw( decode_entities );
+require HTML::TreeBuilder;
 
 struct 'HTML::Index::Document::Struct' => {
     name        => '$',
     path        => '$',
     contents    => '$',
-    modtime     => '$'
+    parser      => '$',
 };
+
+my @NON_VISIBLE_HTML_TAGS = qw(
+    style
+    script
+    head
+);
+
+my $NON_VISIBLE_HTML_TAGS = '(' . join( '|', @NON_VISIBLE_HTML_TAGS ) . ')';
 
 use vars qw( @ISA );
 
@@ -30,16 +40,54 @@ sub new
     return $self;
 }
 
+sub parse
+{
+    my $self = shift;
+
+    my $contents = $self->contents();
+
+    if ( lc( $self->parser ) eq 'html' )
+    {
+        my $tree = HTML::TreeBuilder->new();
+        $tree->parse( $contents );
+        my $text = join( ' ', _get_text_array( $tree ) );
+        $tree->delete();
+        return $text;
+    }
+    elsif ( lc( $self->parser eq 'regex' ) )
+    {
+        my $text = $contents;
+        # get rid of non-visible (script / style / head) text
+        $text =~ s{
+            <$NON_VISIBLE_HTML_TAGS.*?> # a head, script, or style start tag
+            .*?                         # non-greedy match of anything
+            </\1>                       # matching end tag
+        }
+        {}gxis; 
+        # get rid of tags
+        $text =~ s/<.*?>//gs;
+        $text = decode_entities( $text );
+        $text =~ s/[\s\240]+/ /g;
+        return $text;
+    }
+    else
+    {
+        die "Unrecognized value for parser - should be one of (html|regex)\n";
+    }
+}
+
+#------------------------------------------------------------------------------
+#
+# Private functions
+#
+#------------------------------------------------------------------------------
+
 sub _init
 {
     my $self = shift;
     if ( my $path = $self->path() )
     {
         die "Can't read $path\n" unless -r $path;
-        unless ( $self->modtime() )
-        {
-            $self->modtime( ( stat $path )[9] );
-        }
         unless ( $self->contents() )
         {
             open( FH, $path );
@@ -50,8 +98,33 @@ sub _init
     }
     die "No name attribute\n" unless defined $self->name();
     die "No contents attribute\n" unless defined $self->contents();
-    die "No modtime attribute\n" unless defined $self->modtime();
+    $self->parser( 'html' ) unless $self->parser();
+    die "parser attribute should be one of (html|regex)\n" 
+        unless $self->parser() =~ /^(html|regex)$/i
+    ;
+
     return $self;
+}
+
+sub _get_text_array
+{
+    my $element = shift;
+    my @text;
+
+    for my $child ( $element->content_list )
+    {
+        if ( ref( $child ) )
+        {
+            next if $child->tag =~  /^$NON_VISIBLE_HTML_TAGS$/;
+            push( @text, _get_text_array( $child ) );
+        }
+        else
+        {
+            push( @text, $child );
+        }
+    }
+
+    return @text;
 }
 
 #------------------------------------------------------------------------------
@@ -62,9 +135,8 @@ sub _init
 
 =head1 NAME
 
-HTML::Index::Document - Perl object used by
-L<HTML::Index::Create|HTML::Index::Create> to create an index of HTML documents
-for searching
+HTML::Index::Document - Perl object used by HTML::Index::Store to create an
+index of HTML documents for searching
 
 =head1 SYNOPSIS
 
@@ -79,9 +151,8 @@ for searching
 =head1 DESCRIPTION
 
 This module allows you to create objects to represent HTML documents to be
-indexed for searching using the L<HTML::Index|HTML::Index> modules. These might
-be HTML files in a webserver document root, or HTML pages stored in a database,
-etc.
+indexed for searching using the HTML::Index modules. These might be HTML files
+in a webserver document root, or HTML pages stored in a database, etc.
 
 HTML::Index::Document is a subclass of Class::Struct, with 4 attributes:
 
@@ -99,21 +170,18 @@ search, and is the primary identifier for the document. It should be unique. If
 the path attribute is set, then the name attribute defaults to path. Otherwise,
 it must be provided to the constructor.
 
-=item modtime
-
-The modification time of the document. This attribute is used to decide whether
-the document (if it already has been index) needs to be re-indexed (if the
-modtime has changed and is greater than the stored value). It can also be used
-to order search results. If the path attribute is set, the modtime attribute is
-the file modification time that corresponds to path (determined by stat).
-Otherwise, it must be provided to the constructor.
-
 =item contents
 
 The (HTML) contents of the document. This attribute provides the text which is
-indexed by L<HTML::Search::Index|HTML::Search::Index>. If the path attribute is
-set, the contents attribute defaults to the contents of path. Otherwise, it
-must be provided to the constructor.
+indexed by HTML::Index::Store. If the path attribute is set, the contents
+attribute defaults to the contents of path. Otherwise, it must be provided to
+the constructor.
+
+=item parser
+
+Should be one of html or regex. If html, documents are parsed using
+HTML::TreeBuilder to extract visible text. If regex, the
+same job is done by a "quick and dirty" regex.
 
 =back
 
@@ -121,7 +189,9 @@ must be provided to the constructor.
 
 =over 4
 
-=item L<HTML::Index|HTML::Index>
+=item L<HTML::Index>
+
+=item L<HTML::Index::Store>
 
 =back
 

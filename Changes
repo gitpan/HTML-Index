@@ -19,3 +19,13 @@ Revision history for Perl extension HTML::Index.
         - Added the HTML::Index::Store::DataDumper module
 0.11 Wed Mar  5 13:01:49 GMT 2003
         - minor bug fix to POD to replace HTML::Indexer -> HTML::Index::Create
+0.12 Thu Mar  6 10:37:35 GMT 2003
+        - removed TempDir dependency in Makefile.PL, and added IO::File
+0.13 Tue Mar 18 12:09:34 GMT 2003
+        - another (less) major rewrite, thanks mainly to suggestions from
+          william ross [will@spanner.org]. Also, now supports stemming via
+          Lingua::Stem.
+Thu Jun 12 14:13:55 BST 2003
+        - various minor changes and bug fixes, following comments from Tim 
+          Heaney [theaney@cablespeed.com] and David Blumenthal 
+          [david@blumenthal.com]

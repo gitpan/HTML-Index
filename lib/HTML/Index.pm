@@ -1,6 +1,6 @@
 package HTML::Index;
 
-$VERSION = '0.11';
+$VERSION = '0.14';
 
 #------------------------------------------------------------------------------
 #
@@ -10,18 +10,6 @@ $VERSION = '0.11';
 
 use strict;
 use warnings;
-
-use vars qw( %TABLES );
-
-%TABLES = (
-    options => 'HASH',
-    file2fileid => 'HASH',
-    fileid2file => 'RECNO',
-    word2fileid => 'HASH',
-    wordid2word => 'RECNO',
-    soundex2wordid => 'HASH',
-    fileid2modtime => 'RECNO',
-);
 
 sub new
 {
@@ -42,12 +30,11 @@ HTML::Index - Perl modules for creating and searching an index of HTML files
 
 =head1 SYNOPSIS
 
-    use HTML::Index::Create;
+    use HTML::Index::Store;
   
-    $indexer = HTML::Index::Create->new(
-        VERBOSE             => 1,
+    $indexer = HTML::Index::Store->new(
         STOP_WORD_FILE      => '/path/to/stopword/file',
-        DB_DIR              => '/path/to/db/directory',
+        DB                  => '/path/to/db/directory',
         COMPRESS            => 1,
         REFRESH             => 0,
         PARSER              => 'HTML',
@@ -71,9 +58,7 @@ HTML::Index - Perl modules for creating and searching an index of HTML files
         $indexer->index_document( $doc );
     }
 
-    use HTML::Index::Search;
-
-    my $search = HTML::Index::Search->new( DB_DIR => $db_dir );
+    my $search = HTML::Index::Store->new( DB_DIR => $db_dir );
     my @results = $search->search( $q );
 
 =head1 DESCRIPTION
@@ -82,46 +67,30 @@ HTML::Index is a set of modules for creating an index of HTML documents so that
 they can be subsequently searched by keywords, or by Boolean combinations of
 keywords. It was originally inspired by indexer.pl script in the O'Reilly "CGI
 Programming with Perl, 2nd Edition" book
-(http://www.oreilly.com/catalog/cgi2/author.html).
+(L<http://www.oreilly.com/catalog/cgi2/author.html>).
 
 All storage operations are contained in the HTML::Index::Store module that can
 be subclassed to support other storage options (such as BerkeleyDB files, or
 SQL databases). Two such subclasses (HTML::Index::Store::BerkeleyBD and
 HTML::Index::DataDumper) are included in the distribution.
 
-The modules can be used to index any HTML documents - whether stored as
-files, or in a database. They support the use of stopword lists, soundex
-searches, compression of the inverted indexes using Compress::Zlib, and
-re-indexing of documents that have changed. A CGI search interface, which
-can be customized using on HTML::Template templates, is also provided.
-Search queries can be expressed as compound Boolean expressions, composed of
-keywords, parentheses, and logical operators (OR, AND, NOT).
+The modules can be used to index any HTML documents - whether stored as files,
+or in a database. They support the use of stopword lists, soundex searches,
+compression of the inverted indexes and re-indexing of documents. Search
+queries can be expressed as compound Boolean expressions, composed of keywords,
+parentheses, and logical operators (OR, AND, NOT).
 
 =head1 SEE ALSO
 
 =over 4
 
-=item L<HTML::Index::Compress|HTML::Index::Compress>
+=item L<HTML::Index::Store>
 
-=item L<HTML::Index::Create|HTML::Index::Create>
+=item L<HTML::Index::Document>
 
-=item L<HTML::Index::Document|HTML::Index::Document>
+=item L<HTML::Index::Store::BerkeleyDB>
 
-=item L<HTML::Index::Filter|HTML::Index::Filter>
-
-=item L<HTML::Index::Search|HTML::Index::Search>
-
-=item L<HTML::Index::Search::CGI|HTML::Index::Search::CGI>
-
-=item L<HTML::Index::Stats|HTML::Index::Stats>
-
-=item L<HTML::Index::Stopwords|HTML::Index::Stopwords>
-
-=item L<HTML::Index::Store|HTML::Index::Store>
-
-=item L<HTML::Index::Store::BerkeleyDB|HTML::Index::Store::BerkeleyDB>
-
-=item L<HTML::Index::Store::DataDumper|HTML::Index::Store::DataDumper>
+=item L<HTML::Index::Store::DataDumper>
 
 =back
 

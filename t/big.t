@@ -1,50 +1,63 @@
-# Before `make install' is performed this script should be runnable with
-# `make test'. After `make install' it should work as `perl test.pl'
+#!/bin/env perl -w
+# vim:filetype=perl
 
-######################### We start with some black magic to print on failure.
+use strict;
+use warnings;
 
-# Change 1..1 below to 1..last_test_to_print .
-# (It may become useful if the test is moved to ./t subdirectory.)
+use constant ntests => 100;
+use constant nwords => 10;
 
+use Test::More tests => ntests * nwords;
+use lib 'blib/lib';
 use HTML::Index::Store::BerkeleyDB;
-use HTML::Index::Create;
-use HTML::Index::Search;
 use HTML::Index::Document;
+use IO::File;
+use lib 't';
+use Tests;
 
-BEGIN { 
-    do 't/tests.pl';
-}
-
-my $store = HTML::Index::Store::BerkeleyDB->new( DB => 'db/big' );
-my $indexer = HTML::Index::Create->new( 
-    STORE       => $store,
-    REFRESH     => 1,
-) or die "Failed to create HTML::Index::Create object\n";
-my $ntests = 60;
-for ( 0 .. $ntests-1 )
+my $store = HTML::Index::Store::BerkeleyDB->new( DB => 'db', REFRESH => 1, STOP_WORD_FILE => 'eg/stopwords.txt', VERBOSE => $opt_verbose );
+my @dict = map { "word$_" } ( 1 .. ntests );
+my %index;
+my %words;
+my %files;
+if ( my $fh = IO::File->new( '/usr/dict/words' ) )
 {
-    my $doc = HTML::Index::Document->new( 
-        name            => $_,
-        modtime         => time,
-        contents        => "<html><body><p>word$_</p></body></html>",
+    @dict = <$fh>;
+    chomp( @dict );
+    @dict = $store->filter( @dict );
+}
+srand;
+for ( 1 .. ntests )
+{
+    my @w = 
+        map { $dict[$_] } 
+        map { int( rand( $#dict ) ) } 
+        ( 1 .. nwords )
+    ;
+    my $name = "file$_";
+    my $doc = HTML::Index::Document->new(
+        name            => $name,
+        contents        => "<html><body><p>@w</p></body></html>",
     );
-    $indexer->index_document( $doc );
+    $files{$name} = "@w\n";
+    for ( @w )
+    {
+        $words{$_} = 1;
+        $index{$_}{$name}++;
+    }
+    $store->index_document( $doc );
 }
-undef $indexer;
-my $searcher = HTML::Index::Search->new( 
-    STORE       => $store,
-) or die "Failed to create HTML::Index::Search object\n";
-
-print "1..$ntests\n";
-
-for ( 0 .. $ntests-1 )
-{
-    my $test = { q => "word$_", paths => [ "$_" ] };
-    do_search_test( $searcher, $test );
+undef $store;
+$store = HTML::Index::Store::BerkeleyDB->new( DB => 'db', MODE => 'r', VERBOSE => $opt_verbose );
+for my $w ( keys %words )
+{ 
+    my @r1 = sort keys %{$index{$w}};
+    my @r2 = sort $store->search( $w );
+    my $failed = 0;
+    for ( 0 .. $#r1 )
+    {
+        is( $r1[$_], $r2[$_] ); 
+        $failed++ if not defined $r2[$_] or $r1[$_] ne $r2[$_];
+    }
+    warn "$w : @r1 : @r2\n" if $failed;
 }
-
-######################### End of black magic.
-
-# Insert your test code below (better if it prints "ok 13"
-# (correspondingly "not ok 13") depending on the success of chunk 13
-# of the test code):

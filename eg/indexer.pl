@@ -2,10 +2,9 @@
 
 use strict;
 
-use HTML::Index::Store::BerkeleyDB;
-use HTML::Index::Create;
+require HTML::Index::Store::BerkeleyDB;
+require HTML::Index::Document;
 use Getopt::Long;
-use POSIX;
 
 use vars qw( 
     $opt_parser 
@@ -19,15 +18,12 @@ die "Usage: $0 [-parser <regex|html>] [-stopword <stopword_file>] [-block <8|16|
     unless GetOptions qw( stopword=s db=s block=i refresh compress parser=s )
 ;
 my $store = HTML::Index::Store::BerkeleyDB->new(
+    VERBOSE             => 1,
+    PARSER              => $opt_parser || 'html',
     DB                  => $opt_db,
     STOP_WORD_FILE      => $opt_stopword,
     COMPRESS            => $opt_compress,
     REFRESH             => $opt_refresh,
-);
-my $indexer = HTML::Index::Create->new(
-    VERBOSE             => 1,
-    PARSER              => $opt_parser || 'html',
-    STORE               => $store,
 );
 
 my $i = 0;
@@ -36,7 +32,7 @@ my $t0 = time;
 for my $file ( @ARGV )
 {
     my $doc = HTML::Index::Document->new( path => $file );
-    $indexer->index_document( $doc );
+    $store->index_document( $doc );
     $i++;
 }
 
