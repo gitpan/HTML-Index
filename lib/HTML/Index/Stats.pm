@@ -147,6 +147,19 @@ sub _each_file_ids
     return ( $word, $file_ids );
 }
 
+sub print_words
+{
+    my $self = shift;
+    my $include_values = shift;
+
+    while ( my ( $word, $file_ids ) = $self->_each_file_ids )
+    {
+        print $word;
+        print " ", unpack( "B*", $file_ids ), "\n" if $include_values;
+        print "\n";
+    }
+}
+
 sub words
 {
     my $self = shift;

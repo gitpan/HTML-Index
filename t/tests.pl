@@ -10,6 +10,7 @@
     { q => 'some AND stuff AND NOT sample', paths => [ 'eg/test2.html' ] },
     { q => '( more AND stuff ) OR ( sample AND stuff )', paths => [ 'eg/test1.html', 'eg/test2.html', 'eg/test4.html' ] },
     { q => 'some AND more', paths => [ 'eg/test2.html' ] },
+    { q => 'some AND sample AND stuff', paths => [ 'eg/test1.html' ] },
     { q => 'some AND NOT stuff', paths => [ ] },
     { q => 'hyphenated-word', paths => [ 'eg/test1.html' ] },
     { q => 'hyphenated AND word', paths => [ 'eg/test1.html' ] },

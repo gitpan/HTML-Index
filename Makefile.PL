@@ -5,6 +5,8 @@ WriteMakefile(
     'NAME'		=> 'HTML::Index',
     'VERSION_FROM'	=> 'lib/HTML/Index.pm',
     'PREREQ_PM'		=> {
+        Carp                    => undef,
+        POSIX                   => undef,
         BerkeleyDB              => undef,
         Fcntl                   => undef,
         Class::Struct           => undef,
@@ -14,5 +16,13 @@ WriteMakefile(
         Time::HiRes             => undef,
         HTML::Template          => undef,
         Date::Format            => undef,
+        Unicode::String         => undef,
+        Getopt::Long            => undef,
+        File::Find              => undef,
+        File::Path              => undef,
+        Compress::Zlib          => undef,
+        Text::Soundex           => undef,
+        Number::Format          => undef,
+
     }, # e.g., Module::Name => 1.1
 );

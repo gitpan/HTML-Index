@@ -12,6 +12,8 @@ eg/test1.html
 eg/test2.html
 eg/test3.html
 eg/test4.html
+eg/test5.html
+eg/test6.html
 eg/words.pl
 lib/HTML/Index.pm
 lib/HTML/Index/Compress.pm
@@ -30,5 +32,6 @@ t/index.t
 t/load.t
 t/parser.t
 t/reindex.t
+t/reindexcompress.t
 t/stopwords.t
 t/tests.pl

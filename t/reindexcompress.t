@@ -21,7 +21,10 @@ BEGIN {
     { q => 'simple', paths => [ 'eg/test5.html', 'eg/test6.html' ] },
 );
 
-my $store = HTML::Index::Store::BerkeleyDB->new( DB => 'db/reindex' );
+my $store = HTML::Index::Store::BerkeleyDB->new( 
+    DB => 'db/reindex',
+    COMPRESS => 1,
+);
 my $indexer = HTML::Index::Create->new( 
     STORE => $store,
     REFRESH => 1,

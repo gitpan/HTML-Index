@@ -195,7 +195,7 @@ sub _remove_file_id
 
     my $mask = $self->_get_mask( $file_id );
     my $block = $file_ids;
-    $file_ids = $block & ~ $mask;
+    $file_ids = ( '' . $block ) & ~ ( '' . $mask );
     return $file_ids;
 }
 
@@ -206,8 +206,14 @@ sub _add_file_id
     my $file_id = shift;
 
     my $mask = $self->_get_mask( $file_id );
-    my $block = $file_ids;
-    $file_ids = $block ? ( $block | $mask ) : $mask;
+    if ( defined $file_ids )
+    {
+        $file_ids = ( '' . $file_ids ) | ( '' . $mask );
+    }
+    else
+    {
+        $file_ids = $mask;
+    }
     return $file_ids;
 }
 
@@ -218,6 +224,17 @@ sub _get_file_ids
 
     my $file_ids =  $self->STORE->get( 'word2fileid', $word );
     $file_ids = $self->{compress}->inflate( $file_ids );
+    return $file_ids;
+}
+
+sub _set_current_file_ids
+{
+    my $self = shift;
+    my $word = shift;
+    my $file_ids = shift;
+
+    $file_ids = $self->{compress}->deflate( $file_ids );
+    $self->STORE->cput( $word, $file_ids );
     return $file_ids;
 }
 
@@ -261,8 +278,9 @@ sub _add_words
             $self->STORE->put( 'soundex2wordid', $soundex, $soundex2wordid );
         }
         $file_ids = $self->_add_file_id( $file_ids, $file_id );
-        # warn "$w:", _dump_bitstring( $file_ids ), "\n";
+        print LOG "ADD $w TO $file_id:", _dump_bitstring( $file_ids ), "\n";
         $self->_set_file_ids( $w, $file_ids );
+        print LOG "$w ADDED TO $file_id:", _dump_bitstring( $file_ids ), "\n";
     }
 }
 
@@ -320,10 +338,18 @@ sub _deindex
 
     while ( my ( $word, $file_ids ) = $self->_each_file_ids )
     {
+        next unless defined $file_ids;
+        print LOG "REMOVE $word FROM $file_id:", _dump_bitstring( $file_ids ), "\n";
         $file_ids = $self->_remove_file_id( $file_ids, $file_id );
-        $self->STORE->cput( $word, $file_ids ) or
-            die "Can't cput $file_ids in $word key of word2fileid\n"
+        print LOG "$word REMOVED FROM $file_id:", _dump_bitstring( $file_ids ), "\n";
+        $self->_set_current_file_ids( $word, $file_ids ) or
+            die "Can't set current $file_ids in $word key of word2fileid\n"
         ;
+        my $test_file_ids = $self->_get_file_ids( $word );
+        unless ( $test_file_ids eq $file_ids )
+        {
+            die _dump_bitstring( $test_file_ids ), "\n";
+        }
     }
 }
 

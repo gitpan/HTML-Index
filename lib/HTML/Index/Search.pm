@@ -148,16 +148,27 @@ sub _get_bitstring
     my $w = shift;
     my $use_soundex = shift;
 
-    return "'\0'" unless $w = $self->{filter}->filter( $w );
-    return "'\0'" if $self->{stopwords}->is_stopword( $w );
+    $w = $self->{filter}->filter( $w );
+    if ( not $w )
+    {
+        print LOG "$w filtered\n";
+        return "\0";
+    }
+    if ( $self->{stopwords}->is_stopword( $w ) )
+    {
+        print LOG "$w stopworded\n";
+        return "\0";
+    }
     my $file_ids = $self->_get_file_ids( $w );
     if ( not defined $file_ids and $use_soundex )
     {
         $file_ids = $self->_get_soundex_results( \$w );
     }
-    return "'\0'" unless $file_ids;
+    return "\0" unless $file_ids;
     push( @{$self->{words}}, $w );
-    return "'$file_ids'";
+    $file_ids =~ s/\\/\\\\/g;
+    $file_ids =~ s/'/\\'/g;
+    return $file_ids;
 }
 
 sub _create_bitstring
@@ -170,12 +181,16 @@ sub _create_bitstring
     $q =~ s/[^\w\s()]//g;       # get rid of all non-(words|spaces|brackets)
     $q =~ s/\b$BITWISE_REGEX\b/$BITWISE{$1}/gi;  
                                 # convert logical words to bitwise operators
-    $q =~ s/\b(\w+)\s+(\w+)\b/$1 & $2/g;
+    1 while $q =~ s/\b(\w+)\s+(\w+)\b/$1 & $2/g;
                                 # assume any consecutive words are AND'ed
-    $q =~ s/\b(\w+)\b/$self->_get_bitstring( $1, $use_soundex )/ge;
+    $q =~ s/\b(\w+)\b/"'" . $self->_get_bitstring( $1, $use_soundex ) . "'"/ge;
                                 # convert words to bitwise string
-    return eval $q;
-                                # eval bitwise strings / operators
+    my $result = eval $q;       # eval bitwise strings / operators
+    if ( $@ )
+    {
+        print LOG "eval error: $@\n";
+    }
+    return $result;
 }
 
 sub _get_file
@@ -203,10 +218,12 @@ sub search
     my $bitstring = $self->_create_bitstring( $q, $options{SOUNDEX} );
     return () unless $bitstring;
     my @bits = split //, unpack( "B*", $bitstring );
-    return
+    my @results =
         map { $self->_get_file( $_ ) }
         map { $bits[$_] == 1 ? $_ : () } 0 .. $#bits
     ;
+    print LOG "Results: @results\n";
+    return @results;
 }
 
 sub get_words

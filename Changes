@@ -9,3 +9,9 @@ Revision history for Perl extension HTML::Index.
         - major rewrite, thanks mainly to suggestions from william ross
           [will@spanner.org]. Also new using BerkeleyDB, and using a bitstring
           for the inverted index.
+0.08  Fri Mar 22 14:11:03 GMT 2002
+        - bug fix for reindexing - thanks to Aaron Crane
+          [aaronc@gbdirect.co.uk] for spotting this one!
+0.09  Tue Aug 27 17:45:46 BST 2002
+        - bug fix for >2 word queries - thanks to Aaron Crane (again!)
+          [aaronc@gbdirect.co.uk] for spotting this one!
