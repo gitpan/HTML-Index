@@ -157,6 +157,7 @@ sub get_results
         words => $self->{words},
         logic => uc( $self->{logic} ) 
     );
+    @results = sort { -M $a->path <=> -M $b->path } @results;
     if ( @results > $self->{max_results} )
     {
         $#results = $self->{max_results} - 1;
@@ -171,7 +172,7 @@ sub get_results
             $_->path( $url );
         }
     }
-    $self->{results} = [ sort { -M $a->path <=> -M $b->path } @results ];
+    $self->{results} = [ @results ];
 }
 
 sub get_stats

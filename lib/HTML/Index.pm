@@ -135,13 +135,13 @@ sub _deindex
     $self->_verbose( "$file_id has changed - deindexing ...\n" );
     my %word_hash = $self->_get_word_hash( $file_id );
     # delete $file_id from all words in wordid2fileid
-    for my $word_id ( keys %word_hash )
+    for my $word_id ( CORE::keys %word_hash )
     {
         $self->_verbose( "\tremoving $file_id from $word_id ...\n" );
         my %file_hash = $self->_get_file_hash( $word_id );
         delete( $file_hash{$file_id} );
         # if there are no other files with this word, delete it
-        if ( keys %file_hash ) 
+        if ( CORE::keys %file_hash ) 
         {
             $self->_set_file_hash( $word_id, \%file_hash );
         }
@@ -321,7 +321,7 @@ sub new
 {
     my $class = shift;
     my %args = ( %OPTIONS, @_ );
-    for ( keys %args )
+    for ( CORE::keys %args )
     {
         die "Unknown option $_\n" unless exists $OPTIONS{$_};
     }
@@ -393,7 +393,7 @@ sub keys
     my $db_file = shift;
 
     $self->_tie( $db_file, 'r' );
-    my @keys = keys %{$self->{DB_HASH}{$db_file}};
+    my @keys = CORE::keys %{$self->{DB_HASH}{$db_file}};
     return @keys;
 }
 
@@ -596,13 +596,13 @@ sub validate
             }
             $self->_verbose( "Checking $word ($wordid) ...\n" );
             my %fileid = split( /,/, $fileid );
-            for my $fid ( keys %fileid )
+            for my $fid ( CORE::keys %fileid )
             {
                 my $f = $self->value( 'fileid2file', $fid );
                 $self->_verbose( "\tChecking $f ($fid) ...\n" );
                 my $wid = $self->value( 'fileid2wordid', $fid );
                 my %wid = split( /,/, $wid );
-                my @wid = keys %wid;
+                my @wid = CORE::keys %wid;
                 my @words = map { $self->value( 'wordid2word', $_ ) . " ($_)" } @wid;
                 die "$f ($fid) in wordid2fileid{$wordid} ($fileid) but $word ($wordid) not in fileid2wordid{$fid} (@words)\n"
                     unless $wid{$wordid}
@@ -625,13 +625,13 @@ sub validate
             }
             $self->_verbose( "Checking $file ($fileid) ...\n" );
             my %wordid = split( /,/, $wordid );
-            for my $wid ( keys %wordid )
+            for my $wid ( CORE::keys %wordid )
             {
                 my $w = $self->value( 'wordid2word', $wid );
                 $self->_verbose( "\tChecking $w ($wid) ...\n" );
                 my $fid = $self->value( 'wordid2fileid', $wid );
                 my %fid = split( /,/, $fid );
-                my @fid = keys %fid;
+                my @fid = CORE::keys %fid;
                 my @files = map { $self->value( 'fileid2file', $_ ) . " ($_)" } @fid;
                 die "$w ($wid) in fileid2wordid{$fileid} ($wordid) but $file ($fileid) not in wordid2fileid{$wid} (@files)\n"
                     unless $fid{$fileid}
@@ -799,7 +799,7 @@ sub search
         my %file_hash = $self->_get_file_hash( $word_id );
         next unless %file_hash;
         $self->_verbose( "Looking up $word ...\n" );
-        for ( keys %file_hash )
+        for ( CORE::keys %file_hash )
         {
             $results{$_}{$word}++;
         }
@@ -809,14 +809,14 @@ sub search
         map { 
             HTML::Index::SearchResults->new(
                 path => $self->{DB_HASH}{fileid2file}{$_},
-                words => [ keys( %{$results{$_}} ) ],
+                words => [ CORE::keys( %{$results{$_}} ) ],
             );
         }
         grep { 
             $logic eq 'OR' || 
-            scalar( keys( %{$results{$_}} ) ) == scalar( @words ) 
+            scalar( CORE::keys( %{$results{$_}} ) ) == scalar( @words ) 
         }
-        keys %results
+        CORE::keys %results
     ;
 }
 

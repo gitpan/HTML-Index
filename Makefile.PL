@@ -3,7 +3,7 @@ use ExtUtils::MakeMaker;
 # the contents of the Makefile that is written.
 WriteMakefile(
     'NAME'		=> 'HTML::Index',
-    'VERSION'     	=> '0.03',
+    'VERSION'     	=> '0.04',
     'PREREQ_PM'		=> {
         HTML::Index::SearchResults => undef,
         File::Find => undef,
