@@ -3,4 +3,5 @@ Revision history for Perl extension HTML::Index.
 0.01  Tue Feb 13 14:27:19 2001
 	- original version; created by h2xs 1.20 with options
 		-A -X HTML::Index
-
+0.04  Wed Jun 20 16:02:41 BST 2001
+        - fixed a bug with "keys" method - thanks to dave@notsoldseparately.com

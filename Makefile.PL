@@ -3,17 +3,16 @@ use ExtUtils::MakeMaker;
 # the contents of the Makefile that is written.
 WriteMakefile(
     'NAME'		=> 'HTML::Index',
-    'VERSION'     	=> '0.04',
+    'VERSION_FROM'	=> 'lib/HTML/Index.pm',
     'PREREQ_PM'		=> {
-        HTML::Index::SearchResults => undef,
-        File::Find => undef,
-        File::Path => undef,
-        HTML::TreeBuilder => undef,
-        DB_File => undef,
-        Tie::TextDir => undef,
-        Fcntl => undef,
-        Date::Format => undef,
-        CGI_Lite => undef,
-        Time::HiRes => undef,
+        BerkeleyDB              => undef,
+        Fcntl                   => undef,
+        Class::Struct           => undef,
+        TempDir                 => undef,
+        HTML::TreeBuilder       => undef,
+        HTML::Entities          => undef,
+        Time::HiRes             => undef,
+        HTML::Template          => undef,
+        Date::Format            => undef,
     }, # e.g., Module::Name => 1.1
 );

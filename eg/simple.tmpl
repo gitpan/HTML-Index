@@ -1,27 +1,18 @@
 <form 
     name        = "f"
     method      = "GET"
-    onsubmit    = "
-        if ( this.q.value == '' )
-        {
-            return false;
-        }
-    "
 >
 Search for:
 <input 
     type="text" 
-    name="q" 
-    size="30"
-    maxlength="30"
-    value="<!-- TMPL_VAR NAME="Q" -->"
+    name="KEYWORD" 
+    value="<!-- TMPL_VAR NAME="KEYWORD" -->"
 >
-<input type="hidden" name="t" value="simple">
 <input type="submit" value="Go">
 <input <!-- TMPL_IF NAME="AND" --> checked <!-- /TMPL_IF -->
-type="radio" name="l" value="and"> All words
+type="radio" name="LOGIC" value="and"> All words
 <input <!-- TMPL_IF NAME="OR" --> checked <!-- /TMPL_IF -->
-type="radio" name="l" value="or"> Any words
+type="radio" name="LOGIC" value="or"> Any words
 </form>
 <p>
 <!-- TMPL_IF NAME="FIRST" --> <b><!-- TMPL_VAR NAME="STATS" --></b> <br><br> <!-- /TMPL_IF -->
@@ -32,50 +23,12 @@ type="radio" name="l" value="or"> Any words
 <!-- TMPL_LOOP NAME="RESULTS" -->
 <li><a 
     href="<!-- TMPL_VAR NAME="URL" -->"
-    onclick="
-        var re = /MSIE ([\d.]+)/;
-        var results = re.exec( navigator.appVersion );
-        var version = parseInt( results[1] );
-        if ( 
-            navigator.appName == 'Microsoft Internet Explorer' &&
-            version >= 5
-        )
-        {
-            window.external.NavigateAndFind(
-                '<!-- TMPL_VAR NAME="URL" -->',
-                '<!-- TMPL_VAR NAME="KEYWORD" -->',
-                ''
-            );
-            return false;
-        }
-        return true;
-    "
-    class="search"
 ><!-- TMPL_VAR NAME="TITLE" --></a>
-<p class="search"><!-- TMPL_VAR NAME="TEXT" --></p>
+<p><!-- TMPL_VAR NAME="TEXT" --></p>
 <a 
     href="<!-- TMPL_VAR NAME="URL" -->"
-    onclick="
-        var re = /MSIE ([\d.]+)/;
-        var results = re.exec( navigator.appVersion );
-        var version = parseInt( results[1] );
-        if ( 
-            navigator.appName == 'Microsoft Internet Explorer' &&
-            version >= 5
-        )
-        {
-            window.external.NavigateAndFind(
-                '<!-- TMPL_VAR NAME="URL" -->',
-                '<!-- TMPL_VAR NAME="KEYWORD" -->',
-                ''
-            );
-            return false;
-        }
-        return true;
-    "
-    class="url"
 ><!-- TMPL_VAR NAME="URL" --></a>
-<p class="lastmodified"><!-- TMPL_VAR NAME="DATE_STRING" --></p>
+<p <!-- TMPL_VAR NAME="DATE_STRING" --></p>
 </li>
 <!-- /TMPL_LOOP>
 </ol>

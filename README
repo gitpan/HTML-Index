@@ -14,21 +14,6 @@ web searhch CGI. It is used in conjunction with an index created by
 HTML::Index. It uses an HTML::Template template file to generate the
 results page. A sample template file is included with this distribution.
 
-Prerequisites
--------------
-
-This module requires the following perl modules:
-
-Date::Format
-DB_File
-CGI_Lite
-Fcntl
-File::Find
-File::Path
-HTML::TreeBuilder
-Tie::TextDir
-Time::HiRes
-
 Installation
 ------------
 

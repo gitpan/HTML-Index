@@ -2,52 +2,63 @@
 
 use strict;
 
-use HTML::Index;
+use lib 'lib';
+use HTML::Index::Create;
 use Getopt::Long;
-use TempDir;
+use File::Basename;
 
-our ( $opt_sleep, $opt_refresh, $opt_verbose, $opt_logfile, $opt_stopfile, $opt_dbdir );
+use vars qw( 
+    $opt_refresh
+    $opt_verbose
+    $opt_stopfile
+    $opt_dbdir 
+    $opt_parser
+);
 
-my $tmp_dir = TempDir->new();
-$opt_dbdir = "$tmp_dir/db";
+$opt_parser = 'html';
 
-GetOptions( qw( dbdir=s sleep=i refresh verbose logfile=s stopfile=s ) ) 
-    or die <<EOF;
+my @files;
+
+unless ( 
+    GetOptions( 
+        qw( 
+            dbdir=s 
+            refresh 
+            verbose 
+            stopfile=s 
+            parser=s
+        ) 
+    )  and @files = @ARGV
+)
+{
+        die <<EOF;
 Usage: $0 
     [ -refresh ] 
     [ -verbose ] 
-    [ -logfile <logfile> ] 
-    [ -sleep <secs> ]
     [ -stopfile <stop_words_file> ]
     [ -dbdir <db_file_dir> ]
-    <html_dir> [ <html_dir> ... ]
+    [ -parser <html|regex> ]
+    <files to index>
 EOF
-
-my @l = localtime;
-# my $datestr = sprintf( "%04d%02d%02d", $l[5]+1900, $l[4]+1, $l[3] );
-my $datestr = sprintf( "%04d%02d", $l[5]+1900, $l[4]+1 );
-my @DEFAULT_HTML_DIRS = (
-    grep { -d } </www/sites/itn.co.uk/home/htdocs/news/$datestr*>,
-    "/www/sites/itn.co.uk/home/htdocs/news/$datestr",
-    # "/www/sites/itn.co.uk/home/htdocs/news",
-    "/www/sites/itn.co.uk/home/htdocs/specials"
-);
-
-my @html_dirs = @ARGV ?  @ARGV : @DEFAULT_HTML_DIRS;
-
-if ( $opt_logfile )
-{
-    print STDERR "Opening logfile $opt_logfile ...\n";
-    open( STDERR, ">$opt_logfile" ) or die "Can't open logfile $opt_logfile\n";
 }
-my $indexer = HTML::Index->new(
-    SLEEP               => $opt_sleep,
+
+my $indexer = HTML::Index::Create->new(
     STOP_WORD_FILE      => $opt_stopfile,
     REFRESH             => $opt_refresh,
-    VERBOSE             => $opt_verbose || $opt_logfile,
-    HTML_DIRS           => \@html_dirs,
+    VERBOSE             => $opt_verbose,
     DB_DIR              => $opt_dbdir,
-    EXTENSIONS_REGEX    => 'shtml',
+    PARSER              => $opt_parser,
 );
 
-$indexer->create_index();
+my $i = 0;
+my $t0 = time;
+for my $file ( @files )
+{
+    my $doc = HTML::Index::Document->new( path => $file );
+    $indexer->index_file( $doc );
+    $i++;
+}
+
+my $dt = time - $t0;
+my $fps = $i / $dt;
+print "$i files indexed in $dt seconds ($fps files per second)\n";

@@ -2,25 +2,20 @@
 
 use strict;
 
+use lib 'lib';
 use Time::HiRes qw(gettimeofday);
-use HTML::Index;
+use HTML::Index::Search;
 use Getopt::Long;
-use TempDir;
 
-our ( $opt_verbose, $opt_and );
+use vars qw( $opt_db $opt_verbose $opt_and @words );
 
-my $tmp_dir = TempDir->new();
-my $dbdir = "$tmp_dir/db";
-
-my $indexer = HTML::Index->new( 
-    VERBOSE => $opt_verbose,
-    DB_DIR => $dbdir,
-);
-
-my @words = @ARGV;
-GetOptions( qw( verbose and ) ) and @words or
-    die "Usage: $0 [-and] <word1> [ <word2> ... ]\n"
+GetOptions( qw( verbose and db=s ) ) and @words = @ARGV or
+    die "Usage: $0 [-and] [-db <db dir>] <word1> [ <word2> ... ]\n"
 ;
+my $indexer = HTML::Index::Search->new(
+    VERBOSE => $opt_verbose,
+    DB_DIR => $opt_db
+);
 my $logic = $opt_and ? 'AND' : 'OR';
 my $t0 = gettimeofday;
 my @results = $indexer->search( words => \@words, logic => $logic );
