@@ -434,7 +434,7 @@ HTML::Index::Create - Perl module for creating a searchable HTML files index
   use HTML::Index::Create;
   
     $store = HTML::Index::Store->new;
-    $indexer = HTML::Indexer->new(
+    $indexer = HTML::Index::Create->new(
         VERBOSE             => 1,
         STORE               => $store,
         PARSER              => 'HTML',

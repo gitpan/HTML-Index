@@ -17,3 +17,5 @@ Revision history for Perl extension HTML::Index.
           [aaronc@gbdirect.co.uk] for spotting this one!
 0.10  Fri Jan  3 12:16:11 GMT 2003
         - Added the HTML::Index::Store::DataDumper module
+0.11 Wed Mar  5 13:01:49 GMT 2003
+        - minor bug fix to POD to replace HTML::Indexer -> HTML::Index::Create

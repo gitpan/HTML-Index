@@ -1,6 +1,6 @@
 package HTML::Index;
 
-$VERSION = '0.10';
+$VERSION = '0.11';
 
 #------------------------------------------------------------------------------
 #
@@ -44,7 +44,7 @@ HTML::Index - Perl modules for creating and searching an index of HTML files
 
     use HTML::Index::Create;
   
-    $indexer = HTML::Indexer->new(
+    $indexer = HTML::Index::Create->new(
         VERBOSE             => 1,
         STOP_WORD_FILE      => '/path/to/stopword/file',
         DB_DIR              => '/path/to/db/directory',
