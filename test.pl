@@ -22,22 +22,22 @@ eval {
     my $indexer = HTML::Index->new( 
         VERBOSE => 1,
         HTML_DIRS => [ 'html' ],
+        IGNORE => 'html/CVS',
         DB_DIR => $db_dir,
     ) or die "Failed to create HTML::Index object\n";
     print STDERR "Creating index ...\n";
     $indexer->create_index();
     print STDERR "Searching index ...\n";
-    my @result = $indexer->search( words => [ 'some', 'sample', 'text' ] );
+    my @result = 
+        map { $_->path } 
+        $indexer->search( words => [ 'some', 'sample', 'text' ]
+    );
     print STDERR "Result: @result\n";
     print STDERR "Cleaning up temporary database files ...\n";
     rmtree( $db_dir ) or die "Can't delete $db_dir\n" if -d $db_dir;
-    if ( @result == 1 and $result[0] eq 'html/test.html' )
+    unless ( @result == 1 and $result[0] eq 'html/test.html' )
     {
-        print "ok 2\n";
-    }
-    else
-    {
-        print "not ok 2\n";
+        die "search failed\n";
     }
 };
 if ( $@ )

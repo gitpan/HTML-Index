@@ -9,17 +9,25 @@ subsequently searched by keywords. It is looselly based on the indexer.pl
 script in the O'Reilly "CGI Programming with Perl, 2nd Edition" book
 (http://www.oreilly.com/catalog/cgi2/author.html).
 
+HTML::Indexer::Search is a module for generating a search results page for a
+web searhch CGI. It is used in conjunction with an index created by
+HTML::Index. It uses an HTML::Template template file to generate the
+results page. A sample template file is included with this distribution.
+
 Prerequisites
 -------------
 
 This module requires the following perl modules:
 
+Date::Format
+DB_File
+CGI_Lite
+Fcntl
 File::Find
 File::Path
 HTML::TreeBuilder
-DB_File
 Tie::TextDir
-Fcntl
+Time::HiRes
 
 Installation
 ------------
@@ -34,6 +42,7 @@ The usual ...
 Examples
 --------
 
+eg/simple.tmpl - a smple HTML::Template template for search results
 eg/indexer.pl - an example script to build an index
 eg/search.pl - an example script to search an index
 eg/wordcount.pl - an example script to generate word frequency stats from an
@@ -42,12 +51,11 @@ index
 Copyright
 ---------
 
-Copyright (c) 2001 Ave Wrigley and Patrick Browne. All rights reserved. This
-program is free software; you can redistribute it and/or modify it under the
-same terms as Perl itself.
+Copyright (c) 2001 Ave Wrigley. All rights reserved. This program is free
+software; you can redistribute it and/or modify it under the same terms as Perl
+itself.
 
-Authors
--------
+Author
+------
 
 Ave Wrigley <Ave.Wrigley@itn.co.uk>
-Patrick Browne <patrick@centricview.com>

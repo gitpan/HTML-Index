@@ -19,17 +19,13 @@ use warnings;
 use File::Find;
 use File::Path;
 use HTML::TreeBuilder;
+use WWW::SimpleRobot;
+use LWP::Simple;
 use DB_File;
 use Tie::TextDir;
 use Fcntl;
 
-#------------------------------------------------------------------------------
-#
-# Public package globals
-#
-#------------------------------------------------------------------------------
-
-our $VERSION = '0.01';
+use HTML::Index::SearchResults;
 
 #------------------------------------------------------------------------------
 #
@@ -44,7 +40,11 @@ my %OPTIONS = (
     DB_TYPE             => 'DB_File',
     DB_HASH_CACHESIZE   => 0,
     REFRESH             => 0,
+    REMOTE              => 0,
+    DEPTH               => undef,
     HTML_DIRS           => [ '.' ],
+    IGNORE              => undef,
+    URLS                => [],
     DB_DIR              => '.',
     EXTENSIONS_REGEX    => 's?html?',
 );
@@ -271,6 +271,10 @@ sub _create_file_list
     my $i = 0;
     find(
         sub {
+            return if 
+                defined( $self->{IGNORE} ) and 
+                $File::Find::name =~ /$self->{IGNORE}/
+            ;
             return unless -T;
             return unless /\.$self->{EXTENSIONS_REGEX}$/;
             my $file = $File::Find::name;
@@ -281,7 +285,30 @@ sub _create_file_list
         @{$self->{HTML_DIRS}}
     );
     $self->_verbose( "$#files files to index\n" );
-    $self->{FILES} = \@files;
+    $self->{FILES} = [ map { name => $_ }, @files ];
+}
+
+sub _create_url_list
+{
+    my $self = shift;
+
+    $self->_verbose( 
+        "Creating list of files to index from @{ $self->{URLS} }...\n"
+    );
+    $self->{FILES} = [];
+    for my $url ( @{$self->{URLS}} )
+    {
+        $self->_verbose( "Creating a WWW::SimpleRobot for $url\n" );
+        my $robot = WWW::SimpleRobot->new(
+            URLS                => [ $url ],
+            FOLLOW_REGEX        => "^$url",
+            VERBOSE             => $self->{VERBOSE},
+            DEPTH               => $self->{DEPTH},
+        );
+        $self->_verbose( "doing traversal ...\n" );
+        $robot->traverse;
+        push( @{$self->{FILES}}, @{$robot->{pages}} );
+    }
 }
 
 #------------------------------------------------------------------------------
@@ -301,9 +328,23 @@ sub new
 
     my $self = bless \%args, $class;
 
-    unless ( ref( $self->{HTML_DIRS} ) eq 'ARRAY' )
+    if ( $self->{REMOTE} )
     {
-        die "HTML_DIRS option should be an ARRAY ref\n";
+        unless ( ref( $self->{URLS} ) eq 'ARRAY' )
+        {
+            die "URLS option should be an ARRAY ref\n";
+        }
+        unless ( @{$self->{URLS}} )
+        {
+            die "no urls provided in URLS option\n";
+        }
+    }
+    else
+    {
+        unless ( ref( $self->{HTML_DIRS} ) eq 'ARRAY' )
+        {
+            die "HTML_DIRS option should be an ARRAY ref\n";
+        }
     }
     unless ( -d $self->{DB_DIR} )
     {
@@ -629,26 +670,44 @@ sub create_index
     my $self = shift;
 
     $self->_tie_db_files( 'rw' );
-    $self->_create_file_list();
+    if ( $self->{REMOTE} )
+    {
+        $self->_create_url_list();
+    }
+    else
+    {
+        $self->_create_file_list();
+    }
     my $nfiles = $#{$self->{FILES}};
     my $i = 0;
     for my $file ( @{$self->{FILES}} )
     {
-        $self->_verbose( "Processing $file ... ($i / $nfiles)\n" );
+        $file->{name} = $file->{url} if $self->{REMOTE};
+        $self->_verbose( "Processing $file->{name} ... ($i / $nfiles)\n" );
         $i++;
-        my $curr_modtime = ( stat( $file ) )[9];
+        my ( $curr_modtime, $url );
+        if ( $self->{REMOTE} )
+        {
+            my $modified_time = $file->{modified_time};
+            next unless $modified_time;
+            $curr_modtime = $modified_time;
+        }
+        else
+        {
+            $curr_modtime = ( stat( $file->{name} ) )[9];
+        }
         next unless defined $curr_modtime;
-        $self->_verbose( "modtime of $file = $curr_modtime\n" );
-        ( my $munged_file = $file ) =~ s/\//_/g;
+        $self->_verbose( "modtime of $file->{name} = $curr_modtime\n" );
+        ( my $munged_file = $file->{name} ) =~ s/\//_/g;
         my $file_id = $self->{DB_HASH}{file2fileid}{$munged_file};
         if( defined $file_id )
         {
             $self->_verbose( "File id = $file_id ...\n" );
             my $prev_modtime = $self->{DB_HASH}{fileid2modtime}{$file_id};
-            $self->_verbose( "Prev. modtime of $file = $prev_modtime\n" );
+            $self->_verbose( "Prev. modtime of $file->{name} = $prev_modtime\n" );
             if ( $prev_modtime == $curr_modtime )
             {
-                $self->_verbose( "$file hasn't changed .. skipping\n" );
+                $self->_verbose( "$file->{name} hasn't changed .. skipping\n" );
                 next;
             }
             $self->{DB_HASH}{fileid2modtime}{$file_id} = $curr_modtime;
@@ -656,18 +715,27 @@ sub create_index
         }
         else
         {
-            $self->_verbose( "$file is new\n" );
+            $self->_verbose( "$file->{name} is new\n" );
         }
         $file_id = $self->_get_new_file_id();
-        $self->_verbose( "New file id = $file_id for $file ...\n" );
+        $self->_verbose( "New file id = $file_id for $file->{name} ...\n" );
         $self->{DB_HASH}{file2fileid}{$munged_file} = $file_id;
-        $self->{DB_HASH}{fileid2file}{$file_id} = $file;
+        $self->{DB_HASH}{fileid2file}{$file_id} = $file->{name};
         $self->{DB_HASH}{fileid2modtime}{$file_id} = $curr_modtime;
         $self->{DB_HASH}{fileid2wordid}{$file_id} = "";
-        $self->_verbose( "Indexing $file ($file_id)\n" );
+        $self->_verbose( "Indexing $file->{name} ($file_id)\n" );
         my $tree = HTML::TreeBuilder->new();
-        $self->_verbose( "Parse $file\n" );
-        $tree->parse_file( $file );
+        $self->_verbose( "Parse $file->{name}\n" );
+        if ( $self->{REMOTE} )
+        {
+            my $html = get( $file->{name} );
+            next unless $html;
+            $tree->parse( $html );
+        }
+        else
+        {
+            $tree->parse_file( $file->{name} );
+        }
         $self->_verbose( "Get word hash for $file_id\n" );
         $self->_verbose( "Get text from $tree\n" );
         my $text = join( ' ', _get_text_array( $tree ) );
@@ -733,13 +801,21 @@ sub search
         $self->_verbose( "Looking up $word ...\n" );
         for ( keys %file_hash )
         {
-            $results{$_}++;
+            $results{$_}{$word}++;
         }
     }
 
     return 
-        map { $self->{DB_HASH}{fileid2file}{$_} }
-        grep { $logic eq 'OR' || $results{$_} == scalar( @words ) }
+        map { 
+            HTML::Index::SearchResults->new(
+                path => $self->{DB_HASH}{fileid2file}{$_},
+                words => [ keys( %{$results{$_}} ) ],
+            );
+        }
+        grep { 
+            $logic eq 'OR' || 
+            scalar( keys( %{$results{$_}} ) ) == scalar( @words ) 
+        }
         keys %results
     ;
 }
@@ -799,7 +875,7 @@ __END__
 
 =head1 NAME
 
-HTML::Index - Perl extension for blah blah blah
+HTML::Index - Perl extension for indexing HTML files
 
 =head1 SYNOPSIS
 
@@ -808,10 +884,17 @@ HTML::Index - Perl extension for blah blah blah
   $indexer = HTML::Indexer->new( %options );
 
   $indexer->create_index;
+
   @results = $indexer->search( 
     words => [ 'search', keywords' ],
     logic => 'OR',
   );
+
+  for my $result ( @results )
+  {
+    print "words found: ", $result->words, "\n";
+    print "path found on: ", $result->path, "\n";
+  }
 
 =head1 DESCRIPTION
 
@@ -825,6 +908,10 @@ its options (HTML_DIRS). All files in these directories whose extensions match
 the EXTENSIONS_REGEX are parsed using HTML::TreeBuilder and the word in those
 pages added to the index. Words are stored lowercase, anything at least 2
 characters long, and consist of alphanumerics ([a-z\d]{2,}).
+
+Indexing is also possible in "remote" mode; here a list of URLs is provided,
+and indexed files are grabbed via HTTP from these URLs, and all pages linked
+from them. Only pages on the same site are indexed.
 
 Indexes are stored in various database files. The default is to use Berkeley
 DB, but the filesystem can be use if Berkeley DB is not installed using
@@ -867,6 +954,13 @@ combination search) you may not get the result you expect!
 
 Set the cachesize for the DB_File hashes. Default is 0.
 
+=item REMOTE
+
+Operate in "remote" mode; expects URLS rather than HTML_DIRS filesystem
+paths, and index pages by grabbing them via HTTP. Links off the URLs listed are
+followed so that these pages can also be indexed. Only "internal" links are
+followed.
+
 =item REFRESH
 
 Boolean to regenerate the index from scratch.
@@ -874,6 +968,14 @@ Boolean to regenerate the index from scratch.
 =item HTML_DIRS
 
 Specify a list of directories to index as an array ref. Defaults to [ '.' ].
+
+=item URLS
+
+Specify a list of URLs to index as an array ref. Defaults to [ ].
+
+=item IGNORE
+
+Specify a regex of HTML_DIRS to ignore.
 
 =item DB_DIR
 
@@ -896,7 +998,8 @@ Does exactly what it says on the can.
 
 =item search
 
-Search the index. Takes the following options as a hash:
+Search the index, returning an array of L<HTML::Index::SearchResults> objects.
+Takes two arguments:
 
 =over 4
 
@@ -913,10 +1016,11 @@ Default is AND.
 
 =back
 
+=back
+
 =head1 AUTHOR
 
 Ave Wrigley <Ave.Wrigley@itn.co.uk>
-Patrick Browne <patrick@centricview.com>
 
 =head1 COPYRIGHT
 
