@@ -9,21 +9,25 @@
 use HTML::Index::Create;
 use HTML::Index::Search;
 use HTML::Index::Document;
+use HTML::Index::Store::BerkeleyDB;
 
 BEGIN { 
     do 't/tests.pl';
 }
 
+my $store = HTML::Index::Store::BerkeleyDB->new( DB => 'db/reindex' );
 my $indexer = HTML::Index::Create->new( 
+    STORE => $store,
     REFRESH => 1,
 ) or die "Failed to create HTML::Index::Create object\n";
 for ( @test_files )
 {
     my $doc = HTML::Index::Document->new( path => $_ );
-    $indexer->index_file( $doc );
+    $indexer->index_document( $doc );
 }
 undef $indexer;
 my $searcher = HTML::Index::Search->new( 
+    STORE => $store,
 ) or die "Failed to create HTML::Index::Search object\n";
 my $ntests = scalar( @tests );
 my $ntest_files = scalar( @test_files );
@@ -36,11 +40,13 @@ for ( @test_files )
 {
     utime( time, time, $_ );
     my $indexer = HTML::Index::Create->new( 
+        STORE => $store,
     ) or die "Failed to create HTML::Index::Create object\n";
     my $doc = HTML::Index::Document->new( path => $_ );
-    $indexer->index_file( $doc );
+    $indexer->index_document( $doc );
     undef $indexer;
     my $searcher = HTML::Index::Search->new( 
+        STORE => $store,
     ) or die "Failed to create HTML::Index::Search object\n";
     for my $test ( @tests )
     {

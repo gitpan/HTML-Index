@@ -2,63 +2,44 @@
 
 use strict;
 
-use lib 'lib';
+use HTML::Index::Store::BerkeleyDB;
 use HTML::Index::Create;
 use Getopt::Long;
-use File::Basename;
+use POSIX;
 
 use vars qw( 
-    $opt_refresh
-    $opt_verbose
-    $opt_stopfile
-    $opt_dbdir 
-    $opt_parser
+    $opt_parser 
+    $opt_refresh 
+    $opt_block 
+    $opt_db 
+    $opt_compress 
+    $opt_stopword 
 );
-
-$opt_parser = 'html';
-
-my @files;
-
-unless ( 
-    GetOptions( 
-        qw( 
-            dbdir=s 
-            refresh 
-            verbose 
-            stopfile=s 
-            parser=s
-        ) 
-    )  and @files = @ARGV
-)
-{
-        die <<EOF;
-Usage: $0 
-    [ -refresh ] 
-    [ -verbose ] 
-    [ -stopfile <stop_words_file> ]
-    [ -dbdir <db_file_dir> ]
-    [ -parser <html|regex> ]
-    <files to index>
-EOF
-}
-
-my $indexer = HTML::Index::Create->new(
-    STOP_WORD_FILE      => $opt_stopfile,
+die "Usage: $0 [-parser <regex|html>] [-stopword <stopword_file>] [-block <8|16|32>] [-refresh] [-db <db_dir>] [-compress]\n" 
+    unless GetOptions qw( stopword=s db=s block=i refresh compress parser=s )
+;
+my $store = HTML::Index::Store::BerkeleyDB->new(
+    DB                  => $opt_db,
+    STOP_WORD_FILE      => $opt_stopword,
+    COMPRESS            => $opt_compress,
     REFRESH             => $opt_refresh,
-    VERBOSE             => $opt_verbose,
-    DB_DIR              => $opt_dbdir,
-    PARSER              => $opt_parser,
+);
+my $indexer = HTML::Index::Create->new(
+    VERBOSE             => 1,
+    PARSER              => $opt_parser || 'html',
+    STORE               => $store,
 );
 
 my $i = 0;
 my $t0 = time;
-for my $file ( @files )
+
+for my $file ( @ARGV )
 {
     my $doc = HTML::Index::Document->new( path => $file );
-    $indexer->index_file( $doc );
+    $indexer->index_document( $doc );
     $i++;
 }
 
 my $dt = time - $t0;
-my $fps = $i / $dt;
+my $fps = $dt ? $i / $dt : ">" . $i;
 print "$i files indexed in $dt seconds ($fps files per second)\n";

@@ -6,30 +6,20 @@
 # Change 1..1 below to 1..last_test_to_print .
 # (It may become useful if the test is moved to ./t subdirectory.)
 
+use HTML::Index::Store::BerkeleyDB;
 use HTML::Index::Create;
 use HTML::Index::Search;
 use HTML::Index::Document;
-use HTML::Index::Store::BerkeleyDB;
 
-BEGIN { do 't/tests.pl'; }
+BEGIN { 
+    do 't/tests.pl';
+}
 
-@my_tests = (
-    { q => 'some', paths => [ ] },
-    { q => 'some AND NOT some', paths => [ ] },
-    { q => 'some OR stuff', paths => [ 'eg/test1.html', 'eg/test2.html', 'eg/test4.html', ] },
-    { q => 'some OR ( stuff AND NOT more )', paths => [ 'eg/test1.html', 'eg/test2.html', 'eg/test4.html', ] },
-    { q => 'some OR ( stuff AND NOT sample )', paths => [ 'eg/test2.html' ] },
-    { q => '( more OR stuff ) OR ( sample AND stuff )', paths => [ 'eg/test1.html', 'eg/test2.html', 'eg/test4.html', ] },
-    { q => 'different', paths => [ 'eg/test3.html' ] },
-);
-
-my $store = HTML::Index::Store::BerkeleyDB->new(
-    STOP_WORD_FILE => 'eg/stopwords.txt',
-    DB => 'db/stopwords',
-);
+my $store = HTML::Index::Store::BerkeleyDB->new( DB => 'db/compress' );
 my $indexer = HTML::Index::Create->new( 
     STORE => $store,
     REFRESH => 1,
+    COMPRESS => 1,
 ) or die "Failed to create HTML::Index::Create object\n";
 for ( @test_files )
 {
@@ -37,12 +27,14 @@ for ( @test_files )
     $indexer->index_document( $doc );
 }
 undef $indexer;
-my $searcher = HTML::Index::Search->new( 
+my $searcher = HTML::Index::Search->new(
     STORE => $store,
-) or die "Failed to create HTML::Index::Search object\n";
+) or die "Failed to create HTML::Index::Search object\n"
+;
 
-print "1..", scalar( @my_tests ), "\n";
-for my $test ( @my_tests )
+print "1..", scalar( @tests ), "\n";
+
+for my $test ( @tests )
 {
     do_search_test( $searcher, $test );
 }

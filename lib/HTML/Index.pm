@@ -1,6 +1,6 @@
 package HTML::Index;
 
-$VERSION = '0.05';
+$VERSION = '0.07';
 
 #------------------------------------------------------------------------------
 #
@@ -11,11 +11,17 @@ $VERSION = '0.05';
 use strict;
 use warnings;
 
-#------------------------------------------------------------------------------
-#
-# Private package globals
-#
-#------------------------------------------------------------------------------
+use vars qw( %TABLES );
+
+%TABLES = (
+    options => 'HASH',
+    file2fileid => 'HASH',
+    fileid2file => 'RECNO',
+    word2fileid => 'HASH',
+    wordid2word => 'RECNO',
+    soundex2wordid => 'HASH',
+    fileid2modtime => 'RECNO',
+);
 
 sub new
 {
@@ -32,146 +38,88 @@ __END__
 
 =head1 NAME
 
-HTML::Index - Perl extension for indexing HTML files
+HTML::Index - Perl modules for creating and searching an index of HTML files
 
 =head1 SYNOPSIS
 
-  use HTML::Index;
+    use HTML::Index::Create;
   
-  $indexer = HTML::Indexer->new( %options );
+    $indexer = HTML::Indexer->new(
+        VERBOSE             => 1,
+        STOP_WORD_FILE      => '/path/to/stopword/file',
+        DB_DIR              => '/path/to/db/directory',
+        COMPRESS            => 1,
+        REFRESH             => 0,
+        PARSER              => 'HTML',
+    );
 
-  $indexer->create_index;
+    for ( ... )
+    {
+        my $doc = HTML::Index::Document->new( 
+            name        => $name,
+            contents    => $contents,
+            mod_time    => $mod_time,
+        );
+        $indexer->index_document( $doc );
+    }
 
-  @results = $indexer->search( 
-    words => [ 'search', keywords' ],
-    logic => 'OR',
-  );
+    for ( ... )
+    {
+        my $doc = HTML::Index::Document->new( path => $path );
+        # name, contents, and mod_time are the path, contents and modification
+        # time of $path
+        $indexer->index_document( $doc );
+    }
 
-  for my $result ( @results )
-  {
-    print "words found: ", $result->words, "\n";
-    print "path found on: ", $result->path, "\n";
-  }
+    use HTML::Index::Search;
+
+    my $search = HTML::Index::Search->new( DB_DIR => $db_dir );
+    my @results = $search->search( $q );
 
 =head1 DESCRIPTION
 
-HTML::Index is a simple module for indexing HTML files so that they can be
-subsequently searched by keywords. It is looselly based on the indexer.pl
+HTML::Index is a set of modules for creating an index of HTML
+documents so that they can be subsequently searched by keywords, or by
+Boolean combinations of keywords. It was originally inspired by indexer.pl
 script in the O'Reilly "CGI Programming with Perl, 2nd Edition" book
 (http://www.oreilly.com/catalog/cgi2/author.html).
 
-Indexing is based on a list of directories passed to the constructor as one of
-its options (HTML_DIRS). All files in these directories whose extensions match
-the EXTENSIONS_REGEX are parsed using HTML::TreeBuilder and the word in those
-pages added to the index. Words are stored lowercase, anything at least 2
-characters long, and consist of alphanumerics ([a-z\d]{2,}).
+All storage operations are contained in the HTML::Index::Store module that
+can be subclassed to support other storage options (such as BerkeleyDB
+files, or SQL databases). One such subclass (HTML::Index::Store::BerkeleyBD)
+is included in the distribution.
 
-Indexing is also possible in "remote" mode; here a list of URLs is provided,
-and indexed files are grabbed via HTTP from these URLs, and all pages linked
-from them. Only pages on the same site are indexed.
+The modules can be used to index any HTML documents - whether stored as
+files, or in a database. They support the use of stopword lists, soundex
+searches, compression of the inverted indexes using Compress::Zlib, and
+re-indexing of documents that have changed. A CGI search interface, which
+can be customized using on HTML::Template templates, is also provided.
+Search queries can be expressed as compound Boolean expressions, composed of
+keywords, parentheses, and logical operators (OR, AND, NOT).
 
-Indexes are stored in various database files. The default is to use Berkeley
-DB, but the filesystem can be use if Berkeley DB is not installed using
-Tie::TextDir.
-
-The modification times of files in the index are stored, and they are
-"re-inexed" if their modification time changes. Searches return results in no
-particular order - it is up to the caller to re-order them appropriately!
-Indexes can be run incrementally - only new or updated files will be indexed or
-re-indexed.
-
-=head1 OPTIONS
+=head1 SEE ALSO
 
 =over 4
 
-=item DB_TYPE
+=item L<HTML::Index::Compress|HTML::Index::Compress>
 
-This should be either 'DB_File' or 'Tie::TextDir' depending on what type of
-database you want to use for the index (Berkeley DB or filesystem). Default is
-'DB_File'.
+=item L<HTML::Index::Create|HTML::Index::Create>
 
-=item VERBOSE
+=item L<HTML::Index::Document|HTML::Index::Document>
 
-Print various bumpf to STDERR.
+=item L<HTML::Index::Filter|HTML::Index::Filter>
 
-=item SLEEP
+=item L<HTML::Index::Search|HTML::Index::Search>
 
-Specify a period in seconds to sleep between files when indexing. Helps to
-prevent thrashing the server for large indexes.
+=item L<HTML::Index::Search::CGI|HTML::Index::Search::CGI>
 
-=item STOP_WORD_FILE
+=item L<HTML::Index::Stats|HTML::Index::Stats>
 
-Specify a file containing "stop words" to ignore when indexling. A sample
-stopwords.txt file is included in this distribution. MAke sure you use the same
-STOP_WORD_FILE for indexing and searching. Otherwise, if you submit a search
-for a word that was in the stop word list when indexing (especially in a
-combination search) you may not get the result you expect!
+=item L<HTML::Index::Stopwords|HTML::Index::Stopwords>
 
-=item DB_HASH_CACHESIZE
+=item L<HTML::Index::Store|HTML::Index::Store>
 
-Set the cachesize for the DB_File hashes. Default is 0.
-
-=item REMOTE
-
-Operate in "remote" mode; expects URLS rather than HTML_DIRS filesystem
-paths, and index pages by grabbing them via HTTP. Links off the URLs listed are
-followed so that these pages can also be indexed. Only "internal" links are
-followed.
-
-=item REFRESH
-
-Boolean to regenerate the index from scratch.
-
-=item HTML_DIRS
-
-Specify a list of directories to index as an array ref. Defaults to [ '.' ].
-
-=item URLS
-
-Specify a list of URLs to index as an array ref. Defaults to [ ].
-
-=item IGNORE
-
-Specify a regex of HTML_DIRS to ignore.
-
-=item DB_DIR
-
-Specify a directory to store the Berkeley DB files. Defaults to '.'.
-
-=item EXTENSIONS_REGEX
-
-Specify a regex of file extension to match for HTML files to be indexed.
-Defaults to 's?html?'.
-
-=back
-
-=head1 METHODS
-
-=over 4
-
-=item create_index
-
-Does exactly what it says on the can.
-
-=item search
-
-Search the index, returning an array of L<HTML::Index::SearchResults> objects.
-Takes two arguments:
-
-=over 4
-
-=item words
-
-An array ref to the keywords to search on. Keywords are "normalized" in the
-same way as words in the index (i.e. lowercase, only alphanumerics, at least 2
-character).
-
-=item logic
-
-Either OR or AND. Determines how the search words are combined logically.
-Default is AND.
-
-=back
+=item L<HTML::Index::Store::BerkeleyDB|HTML::Index::Store::BerkeleyDB>
 
 =back
 

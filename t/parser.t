@@ -6,14 +6,37 @@
 # Change 1..1 below to 1..last_test_to_print .
 # (It may become useful if the test is moved to ./t subdirectory.)
 
-BEGIN { $| = 1; print "1..1\n"; }
-END {print "not ok 1\n" unless $loaded;}
 use HTML::Index::Create;
 use HTML::Index::Search;
 use HTML::Index::Document;
 use HTML::Index::Store::BerkeleyDB;
-$loaded = 1;
-print "ok 1\n";
+
+BEGIN { 
+    do 't/tests.pl';
+}
+
+my $store = HTML::Index::Store::BerkeleyDB->new( DB => 'db/parser' );
+my $indexer = HTML::Index::Create->new( 
+    STORE => $store,
+    PARSER => 'regex',
+    REFRESH => 1,
+) or die "Failed to create HTML::Index::Create object\n";
+for ( @test_files )
+{
+    my $doc = HTML::Index::Document->new( path => $_ );
+    $indexer->index_document( $doc );
+}
+undef $indexer;
+my $searcher = HTML::Index::Search->new( 
+    STORE => $store,
+) or die "Failed to create HTML::Index::Search object\n";
+
+print "1..", scalar( @tests ), "\n";
+
+for my $test ( @tests )
+{
+    do_search_test( $searcher, $test );
+}
 
 ######################### End of black magic.
 

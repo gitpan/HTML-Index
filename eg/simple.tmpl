@@ -1,34 +1,24 @@
-<form 
-    name        = "f"
-    method      = "GET"
->
+<form>
 Search for:
 <input 
     type="text" 
-    name="KEYWORD" 
-    value="<!-- TMPL_VAR NAME="KEYWORD" -->"
+    name="q" 
+    value="<!-- TMPL_VAR NAME="Q" -->"
 >
 <input type="submit" value="Go">
-<input <!-- TMPL_IF NAME="AND" --> checked <!-- /TMPL_IF -->
-type="radio" name="LOGIC" value="and"> All words
-<input <!-- TMPL_IF NAME="OR" --> checked <!-- /TMPL_IF -->
-type="radio" name="LOGIC" value="or"> Any words
 </form>
 <p>
+<!-- TMPL_IF NAME="Q" -->
 <!-- TMPL_IF NAME="FIRST" --> <b><!-- TMPL_VAR NAME="STATS" --></b> <br><br> <!-- /TMPL_IF -->
 <!-- TMPL_IF NAME="RESULTS" --> Results <!-- TMPL_VAR NAME="FROM" -->-<!-- TMPL_VAR NAME="TO" --> <!-- /TMPL_IF -->
 </p>
 
 <ol start="<!-- TMPL_VAR NAME="FROM" -->">
 <!-- TMPL_LOOP NAME="RESULTS" -->
-<li><a 
-    href="<!-- TMPL_VAR NAME="URL" -->"
-><!-- TMPL_VAR NAME="TITLE" --></a>
+<li><a href="<!-- TMPL_VAR NAME="URL" -->"><!-- TMPL_VAR NAME="TITLE" --></a>
 <p><!-- TMPL_VAR NAME="TEXT" --></p>
-<a 
-    href="<!-- TMPL_VAR NAME="URL" -->"
-><!-- TMPL_VAR NAME="URL" --></a>
-<p <!-- TMPL_VAR NAME="DATE_STRING" --></p>
+<a href="<!-- TMPL_VAR NAME="URL" -->"><!-- TMPL_VAR NAME="URL" --></a>
+<p><!-- TMPL_VAR NAME="DATE_STRING" --></p>
 </li>
 <!-- /TMPL_LOOP>
 </ol>
@@ -49,3 +39,4 @@ type="radio" name="LOGIC" value="or"> Any words
 <!-- /TMPL_IF -->
 <!-- /TMPL_IF -->
 <!-- /TMPL_LOOP -->
+<!-- /TMPL_IF -->

@@ -5,3 +5,7 @@ Revision history for Perl extension HTML::Index.
 		-A -X HTML::Index
 0.04  Wed Jun 20 16:02:41 BST 2001
         - fixed a bug with "keys" method - thanks to dave@notsoldseparately.com
+0.06  Tue Jan 15 17:51:04 GMT 2002
+        - major rewrite, thanks mainly to suggestions from william ross
+          [will@spanner.org]. Also new using BerkeleyDB, and using a bitstring
+          for the inverted index.

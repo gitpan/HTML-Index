@@ -2,30 +2,20 @@
 
 use strict;
 
-use lib 'lib';
-use Time::HiRes qw(gettimeofday);
+use HTML::Index::Store::BerkeleyDB;
 use HTML::Index::Search;
 use Getopt::Long;
+use Time::HiRes qw(gettimeofday);
 
-use vars qw( $opt_db $opt_verbose $opt_and @words );
+use vars qw( $opt_db );
+die "Usage: $0 [-db <db dir>]\n" unless GetOptions qw( db=s );
 
-GetOptions( qw( verbose and db=s ) ) and @words = @ARGV or
-    die "Usage: $0 [-and] [-db <db dir>] <word1> [ <word2> ... ]\n"
-;
-my $indexer = HTML::Index::Search->new(
-    VERBOSE => $opt_verbose,
-    DB_DIR => $opt_db
-);
-my $logic = $opt_and ? 'AND' : 'OR';
+my $q = join( ' ', @ARGV );
 my $t0 = gettimeofday;
-my @results = $indexer->search( words => \@words, logic => $logic );
-my $time = gettimeofday - $t0;
-print 
-    map( { "$_\n" } @results ),
-    sprintf( 
-        "%d results for %s returned in %0.3f secs\n",
-        scalar( @results ), 
-        join( " $logic ", @words ), 
-        $time 
-    )
-;
+my @results = HTML::Index::Search->new( 
+    STORE => HTML::Index::Store::BerkeleyDB->new( DB => $opt_db )
+)->search( $q );
+my $dt = gettimeofday - $t0;
+print map { "$_\n" } @results;
+printf "%d results for $q returned in %0.3f secs\n", scalar( @results ), $dt;
+my $datestamp = shift || strftime( "%Y%m%d", localtime );

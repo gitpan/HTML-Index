@@ -15,10 +15,8 @@ use warnings;
 #
 #------------------------------------------------------------------------------
 
-use BerkeleyDB;
-use Fcntl;
 use Class::Struct;
-use TempDir;
+use Carp;
 
 #------------------------------------------------------------------------------
 #
@@ -28,22 +26,15 @@ use TempDir;
 
 my @OPTIONS = qw(
     VERBOSE
-    REFRESH
-    DB_DIR
+    COMPRESS
+    STOP_WORD_FILE
+    DB
     MODE
-);
-
-use vars qw( %DB_FILES @ISA );
-
-%DB_FILES = (
-    file2fileid => 'HASH',
-    fileid2file => 'RECNO',
-    word2fileid => 'HASH',
-    fileid2modtime => 'RECNO',
 );
 
 struct 'HTML::Index::Store::Struct' => { map { $_ => '$' } @OPTIONS };
 
+use vars qw( @ISA );
 @ISA = qw( HTML::Index::Store::Struct );
 
 #------------------------------------------------------------------------------
@@ -56,310 +47,86 @@ sub new
 {
     my $class = shift;
     my $self = $class->SUPER::new( @_ );
-    $self->_init();
     return $self;
 }
 
 #------------------------------------------------------------------------------
 #
-# Initialization private method
+# public methods
 #
 #------------------------------------------------------------------------------
 
-sub _init
+sub init
 {
     my $self = shift;
+    my %options = @_;
 
-    if ( $self->VERBOSE )
+    if ( defined $self->STOP_WORD_FILE )
     {
-        open( LOG, ">&STDERR" );
+        # save options
+        $self->put( 'options', 'STOP_WORD_FILE', $self->STOP_WORD_FILE );
     }
     else
     {
-        open( LOG, ">/dev/null" );
+        # get options
+        $self->STOP_WORD_FILE( $self->get( 'options', 'STOP_WORD_FILE' ) );
     }
-    unless ( defined $self->DB_DIR )
+    if ( defined $self->COMPRESS )
     {
-        my $dir = join( '/', TempDir->new, ref( $self ) );
-        print LOG "Creating DB_DIR $dir\n";
-        $self->DB_DIR( $dir );
+        # save options
+        $self->put( 'options', 'COMPRESS', $self->COMPRESS );
     }
-    unless ( -d $self->DB_DIR )
+    else
     {
-        print LOG "mkdir ", $self->DB_DIR, "\n";
-        mkdir( $self->DB_DIR ) or die "can't mkdir ", $self->DB_DIR, ": $!\n";
+        # get options
+        $self->COMPRESS( $self->get( 'options', 'COMPRESS' ) );
     }
-    # $self->{db_env} = new BerkeleyDB::Env(
-        # '-Flags'        => DB_INIT_LOCK,
-    # );
-    # die "Failed to create BerkeleyDB::Env: $!\n" unless $self->{db_env};
-    # my $status = $self->{db_env}->setmutexlocks();
-    # die "setmutexlocks failed: $status\n" if $status != 0;
-
-    $self->MODE( 'r' ) unless $self->MODE;
-
-    while ( my ( $db_file, $type ) = each %DB_FILES )
-    {
-        my $db_path = $self->DB_DIR . "/$db_file.db";
-        if ( -e $db_path and $self->REFRESH )
-        {
-            print LOG "Refreshing $db_file db\n";
-            unlink( $db_path ) or die "Can't remove $db_path\n";
-        }
-        my $tied;
-        my $flags = $self->MODE eq 'r' ? DB_RDONLY : DB_CREATE;
-        if ( $type eq 'RECNO' )
-        {
-            $tied = new BerkeleyDB::Recno(
-                Filename        => $db_path, 
-                Flags           => $flags,
-                Env             => $self->{db_env},
-            ) or die "Cannot tie to $db_path ($flags): $!\n";
-        }
-        elsif ( $type eq 'HASH' )
-        {
-            $tied = new BerkeleyDB::Hash(
-                Filename        => $db_path, 
-                Flags           => $flags,
-                Pagesize        => 512,
-                Env             => $self->{db_env},
-            ) or die "Cannot tie to $db_path ($flags): $!\n";
-        }
-        $self->{$db_file} = $tied;
-        print LOG "db $db_file ($self->{$db_file}) tied - $tied\n";
-    }
-    return $self;
 }
 
-#------------------------------------------------------------------------------
-#
-# AUTOLOAD
-#
-#------------------------------------------------------------------------------
-
-sub AUTOLOAD
+sub get
 {
-    use vars qw( $AUTOLOAD );
-    my $db = $AUTOLOAD;
-    $db =~ s/.*:://;
-    return if $db eq 'DESTROY';
-    my $type = $DB_FILES{$db};
-    unless ( $type )
-    {
-        die 
-            "Unknown method $db (not one of ", 
-            join( ',', values %DB_FILES) , 
-            ")\n"
-        ;
-    }
+    my $self = shift;
+    my $table = shift;
+    my $key = shift;
+
+    return $self->{$table}{$key};
+}
+
+sub put
+{
+    my $self = shift;
+    my $table = shift;
+    my $key = shift;
+    my $val = shift;
+
+    $self->{$table}{$key} = $val;
+}
+
+sub each
+{
+    my $self = shift;
+    my $table = shift;
+    my @each = each( %{$self->{$table}} );
+    $self->{curr_table} = @each ? $table : undef;
+    return @each;
+}
+
+sub cput
+{
     my $self = shift;
     my $key = shift;
-    return $self->{$db} unless defined $key;
     my $val = shift;
-    if ( defined $val )
-    {
-        my $status = $self->{$db}->db_put( $key, $val );
-        die "Can't db_put $val into the $key field of $db: $status\n" if $status;
-    }
-    else
-    {
-        my $status = $self->{$db}->db_get( $key, $val );
-    }
-    return $val;
+
+    croak "Must call each before cput\n" unless defined $self->{curr_table};
+    $self->{$self->{curr_table}}{$key}{$val};
 }
 
-#------------------------------------------------------------------------------
-#
-# Destructor
-#
-#------------------------------------------------------------------------------
-
-sub untie
+sub nkeys
 {
     my $self = shift;
+    my $table = shift;
 
-    print LOG "destroying $self\n";
-    while ( my ( $db_file, $type ) = each %DB_FILES )
-    {
-        print LOG "Untie $db_file ...\n";
-        next unless $self->{$db_file};
-        undef( $self->{$db_file} );
-    }
-}
-
-#------------------------------------------------------------------------------
-#
-# Public methods
-#
-#------------------------------------------------------------------------------
-
-sub deindex
-{
-    my $self = shift;
-    my $file_id = shift;
-
-    print LOG "$file_id has changed - deindexing ...\n";
-
-    my ( $word, $file_ids, $file ) = ( 0,0,0 );
-    my $cursor = $self->{word2fileid}->db_cursor();
-    while ( $cursor->c_get( $word, $file_ids, DB_NEXT ) == 0 )
-    {
-        my $file_ids = $self->remove_file_id( $file_ids, $file_id );
-        my $status = $cursor->c_put( $word, $file_ids, DB_CURRENT );
-        die "Can't c_put $file_ids in $word key of word2fileid: $status\n"
-            if $status
-        ;
-    }
-}
-
-sub remove_file_id
-{
-    my $self = shift;
-    my $file_ids = shift;
-    my $file_id = shift;
-
-    my @block = ();
-    if ( defined $file_ids )
-    {
-        @block = unpack( "C*", $file_ids );
-    }
-    my $blockn = int( $file_id / 8 );
-    my $block = $block[$blockn];
-    my $bitn = $file_id % 8;
-    my $mask = ~ ( 1 << $bitn );
-    $block[$blockn] = $block ? ( $block & $mask ) : 0;
-    $file_ids = pack( "C*", map { $_ ? $_ : 0 } @block );
-}
-
-sub add_file_id
-{
-    my $self = shift;
-    my $file_ids = shift;
-    my $file_id = shift;
-
-    my @block = ();
-    if ( defined $file_ids )
-    {
-        @block = unpack( "C*", $file_ids );
-    }
-    my $blockn = int( $file_id / 8 );
-    my $block = $block[$blockn];
-    my $bitn = $file_id % 8;
-    my $mask = ( 1 << $bitn );
-    $block[$blockn] = $block ? ( $block | $mask ) : $mask;
-    $file_ids = pack( "C*", map { $_ ? $_ : 0 } @block );
-}
-
-sub add_words
-{
-    my $self = shift;
-    my $file_id = shift;
-    my $words = shift;
-
-    for my $w ( @$words )
-    {
-        my $file_ids = $self->word2fileid( $w );
-        $file_ids = $self->add_file_id( $file_ids, $file_id );
-        $self->word2fileid( $w, $file_ids );
-    }
-}
-
-sub get_new
-{
-    my $self = shift;
-    my $db = shift;
-    my $type = $DB_FILES{$db};
-    unless ( $type )
-    {
-        die 
-            "Unknown method $db (not one of ", 
-            join( ',', keys %DB_FILES) , 
-            ")\n"
-        ;
-    }
-    die "get_new only works for RECNO\n" unless $type eq 'RECNO';
-    return $self->{$db}->length();
-}
-
-sub dump_fileid2fileid
-{
-    my $self = shift;
-    my $mask = shift;
-
-    my @file_ids;
-    my $file_id = 0;
-    my $bit = 1;
-    while ( $bit <= $mask )
-    {
-        push( @file_ids, $file_id ) if $mask & $bit;
-        $bit = $bit << 1;
-        $file_id++;
-    }
-    return map { $self->fileid2file( $_ ) } @file_ids;
-}
-
-sub sync
-{
-    my $self = shift;
-    my $db = shift;
-    if ( my $status = $self->{$db}->db_sync )
-    {
-        die "Can't sync db $db ($self->{$db}): $status\n";
-    }
-}
-
-sub print_stats
-{
-    my $self = shift;
-
-    $self->sync( 'word2fileid' );
-    my $index_size = ( stat( $self->DB_DIR . "/word2fileid.db" ) )[7];
-    my $nwords = $self->{word2fileid}->db_stat()->{hash_nkeys};
-    my $nfiles = $self->{file2fileid}->db_stat()->{hash_nkeys};
-    print "size: $index_size ";
-    print "words: $nwords ";
-    print "files: $nfiles ";
-    my $bpw = 8 * ( $index_size / $nwords );
-    printf "bits/word: %.2f ", $bpw;
-    my $bpwpf = $bpw / $nfiles;
-    printf "bits/word/file: %.2f\n", $bpwpf;
-}
-
-sub print_words
-{
-    my $self = shift;
-    my ( $key, $val ) = ( 0,0 );
-    my $cursor = $self->{word2fileid}->db_cursor();
-    while ( $cursor->c_get( $key, $val, DB_NEXT ) == 0 )
-    {
-        $val = join( ',', unpack( "C*", $val ) );
-        print "$key ($val)\n";
-    }
-    print "TOTAL: ", $self->nwords, " words\n";
-}
-
-sub nwords
-{
-    my $self = shift;
-    return $self->{word2fileid}->db_stat()->{hash_nkeys};
-}
-
-sub print_files
-{
-    my $self = shift;
-    my ( $key, $val ) = ( 0,0 );
-    my $cursor = $self->{file2fileid}->db_cursor();
-    while ( $cursor->c_get( $key, $val, DB_NEXT ) == 0 )
-    {
-        print "$key ($val)\n";
-    }
-    print "TOTAL: ", $self->nfiles, " files\n";
-}
-
-sub nfiles
-{
-    my $self = shift;
-    return $self->{file2fileid}->db_stat()->{hash_nkeys};
+    return scalar keys %{$self->{$table}};
 }
 
 #------------------------------------------------------------------------------
@@ -374,15 +141,146 @@ __END__
 
 =head1 NAME
 
+HTML::Index::Store - subclass'able module for storing inverted index files for
+the L<HTML::Index|HTML::Index> modules.
+
 =head1 SYNOPSIS
+
+    my $store = HTML::Index::Store->new( 
+        VERBOSE => 0,
+        MODE => 'r',
+        COMPRESS => 1,
+        DB => $db,
+        STOP_WORD_FILE => $swf,
+    );
+    $store->init(
+        TABLES => \%HTML::Index::TABLES,
+        REFRESH => 1,
+    );
 
 =head1 DESCRIPTION
 
+The HTML::Index::Store module is generic interface to provide storage for the
+inverted indexes used by the L<HTML::Index|HTML::Index> modules. The reference
+implementation uses in memory storage, so is not suitable for persistent
+applications (where the search / index functionality is seperated). Subclasses
+of this module should override the methods described below, and then be passed
+as a constructor argument to the L<HTML::Index::Create|HTML::Index::Create> and
+L<HTML::Index::Search|HTML::Index::Search> modules.
+
+There is one subclass of this module provided with this distribution;
+L<HTML::Index::Store::BerkeleyDB|HTML::Index::Store::BerkeleyDB>.
+
 =head1 CONSTRUCTOR OPTIONS
+
+Constructor options allow the HTML::Index::Store to provide a token to identify
+the database that is being used (this might be a directory path of a Berkeley
+DB implementation, or a database descriptor for a DBI implementation). It also
+allows options (STOP_WORD_FILE and COMPRESS) to be set. These options are then
+stored in an options table in the database, and are therefore "sticky" - so
+that the search interface can automatically use the same options setting used
+at creating time.
+
+=over 4
+
+=item DB
+
+Database identifier. Available to subclassed modules using the DB method call.
+
+=item MODE
+
+Either 'r' or 'rw' depending on whether the HTML::Index::Store module is
+created in read only or read/write mode.
+
+=item VERBOSE
+
+If true, print stuff to STDERR.
+
+=item STOP_WORD_FILE
+
+This option is the path to a stopword file (see
+L<HTML::Index::Stopwords|HTML::Index::Stopwords>). If set, the same stopword
+file is available for both creation and searching of the index.
+
+=item COMPRESS
+
+If true, use L<HTML::Index::Compress|HTML::Index::Compress> compression on the
+inverted index file. This option is also "sticky" for searching (obviously!).
+
+=back
 
 =head1 METHODS
 
+=over 4
+
+=item init( %options )
+
+The %options hash contains two keys:
+
+=over 4
+
+=item TABLES
+
+The TABLES option is an hashref of table names that the
+L<HTML::Index::Store|HTML::Index::Store> module is required to create and
+maintain. The keys of this hash are the names of the tables, and the values are
+one of 'HASH' or 'RECNO', which give a clue as to what type of data is required
+to be stored in that table (basically, keyed on an integer or a string). The
+current list of tables used is:
+
+    %HTML::Index::TABLES = (
+        options => 'HASH',
+        file2fileid => 'HASH',
+        fileid2file => 'RECNO',
+        word2fileid => 'HASH',
+        wordid2word => 'RECNO',
+        soundex2wordid => 'HASH',
+        fileid2modtime => 'RECNO',
+    );
+
+but a subclass of L<HTML::Index::Store|HTML::Index::Store> should be prepare
+to store any list of tables provided to its init method using this option.
+
+=item REFRESH
+
+If the value of this option is true, the module should flush the data from its
+tables at initialization.
+
+=back
+
+=item get( $table, $key )
+
+Get the $key entry in the $table table.
+
+=item put( $table, $key, $val )
+
+Set the $key entry in the $table table to the value $val.
+
+=item each( $table )
+
+First call to each sets a cursor for the table $table, and returns a ( $key,
+$value ) pair. Subsequent calls advance the cursor and return subsequest (
+$key, $value ) pairs. Returns ( undef, undef ) after the last entry has been
+returned.
+
+=item cput( $key, $val )
+
+Iserts the key and value in the current table at the current cursor position
+(as determined by the most recent call to each).
+
+=item nkeys( $table )
+
+Returns the number of keys in the $table table.
+
+=back
+
 =head1 SEE ALSO
+
+=over 4
+
+=item L<HTML::Index|HTML::Index>
+
+=back
 
 =head1 AUTHOR
 

@@ -6,34 +6,40 @@
 # Change 1..1 below to 1..last_test_to_print .
 # (It may become useful if the test is moved to ./t subdirectory.)
 
+use HTML::Index::Store::BerkeleyDB;
 use HTML::Index::Create;
 use HTML::Index::Search;
-use HTML::Index::Store::BerkeleyDB;
 use HTML::Index::Document;
 
 BEGIN { 
     do 't/tests.pl';
 }
 
-my $store = HTML::Index::Store::BerkeleyDB->new( DB => 'db/index' );
+my $store = HTML::Index::Store::BerkeleyDB->new( DB => 'db/big' );
 my $indexer = HTML::Index::Create->new( 
-    REFRESH => 1,
-    STORE => $store,
+    STORE       => $store,
+    REFRESH     => 1,
 ) or die "Failed to create HTML::Index::Create object\n";
-for ( @test_files )
+my $ntests = 60;
+for ( 0 .. $ntests-1 )
 {
-    my $doc = HTML::Index::Document->new( path => $_ );
+    my $doc = HTML::Index::Document->new( 
+        name            => $_,
+        modtime         => time,
+        contents        => "<html><body><p>word$_</p></body></html>",
+    );
     $indexer->index_document( $doc );
 }
 undef $indexer;
 my $searcher = HTML::Index::Search->new( 
-    STORE => $store,
+    STORE       => $store,
 ) or die "Failed to create HTML::Index::Search object\n";
 
-print "1..", scalar( @tests ), "\n";
+print "1..$ntests\n";
 
-for my $test ( @tests )
+for ( 0 .. $ntests-1 )
 {
+    my $test = { q => "word$_", paths => [ "$_" ] };
     do_search_test( $searcher, $test );
 }
 

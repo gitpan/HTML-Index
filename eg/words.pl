@@ -2,13 +2,14 @@
 
 use strict;
 
-use lib 'lib';
-
-use HTML::Index::Store;
+use HTML::Index::Store::BerkeleyDB;
+use HTML::Index::Stats;
 use Getopt::Long;
 
-use vars qw( $opt_dbdir );
+use vars qw( $opt_dbdir $opt_values );
 
-die "Usage: $0 [ -dbdir <db_file_dir> ]" unless GetOptions( qw( dbdir=s ) );
-my $store = HTML::Index::Store->new( DB_DIR => $opt_dbdir );
-$store->print_words();
+die "Usage: $0 [ -dbdir <db_file_dir> ] [ -values ]" 
+    unless GetOptions( qw( values dbdir=s ) );
+print join "\n", HTML::Index::Stats->new( 
+    STORE => HTML::Index::Store::BerkeleyDB->new( DB => $opt_dbdir )
+)->words( $opt_values );
