@@ -10,10 +10,10 @@ keywords. It was originally inspired by indexer.pl script in the O'Reilly "CGI
 Programming with Perl, 2nd Edition" book
 (http://www.oreilly.com/catalog/cgi2/author.html).
 
-All storage operations are contained in the HTML::Index::Store module that
-can be subclassed to support other storage options (such as BerkeleyDB
-files, or SQL databases). One such subclass (HTML::Index::Store::BerkeleyBD)
-is included in the distribution.
+All storage operations are contained in the HTML::Index::Store module that can
+be subclassed to support other storage options (such as BerkeleyDB files, or
+SQL databases). Two such subclasses (HTML::Index::Store::BerkeleyBD and
+HTML::Index::DataDumper) are included in the distribution.
 
 The modules can be used to index any HTML documents - whether stored as
 files, or in a database. They support the use of stopword lists, soundex

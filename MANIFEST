@@ -26,6 +26,7 @@ lib/HTML/Index/Search/CGI.pm
 lib/HTML/Index/Stopwords.pm
 lib/HTML/Index/Store.pm
 lib/HTML/Index/Store/BerkeleyDB.pm
+lib/HTML/Index/Store/DataDumper.pm
 t/big.t
 t/compress.t
 t/index.t

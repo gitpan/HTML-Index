@@ -15,6 +15,7 @@ WriteMakefile(
         HTML::Entities          => undef,
         Time::HiRes             => undef,
         HTML::Template          => undef,
+        Data::Dumper            => undef,
         Date::Format            => undef,
         Unicode::String         => undef,
         Getopt::Long            => undef,

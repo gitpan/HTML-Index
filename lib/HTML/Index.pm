@@ -1,6 +1,6 @@
 package HTML::Index;
 
-$VERSION = '0.09';
+$VERSION = '0.10';
 
 #------------------------------------------------------------------------------
 #
@@ -78,16 +78,16 @@ HTML::Index - Perl modules for creating and searching an index of HTML files
 
 =head1 DESCRIPTION
 
-HTML::Index is a set of modules for creating an index of HTML
-documents so that they can be subsequently searched by keywords, or by
-Boolean combinations of keywords. It was originally inspired by indexer.pl
-script in the O'Reilly "CGI Programming with Perl, 2nd Edition" book
+HTML::Index is a set of modules for creating an index of HTML documents so that
+they can be subsequently searched by keywords, or by Boolean combinations of
+keywords. It was originally inspired by indexer.pl script in the O'Reilly "CGI
+Programming with Perl, 2nd Edition" book
 (http://www.oreilly.com/catalog/cgi2/author.html).
 
-All storage operations are contained in the HTML::Index::Store module that
-can be subclassed to support other storage options (such as BerkeleyDB
-files, or SQL databases). One such subclass (HTML::Index::Store::BerkeleyBD)
-is included in the distribution.
+All storage operations are contained in the HTML::Index::Store module that can
+be subclassed to support other storage options (such as BerkeleyDB files, or
+SQL databases). Two such subclasses (HTML::Index::Store::BerkeleyBD and
+HTML::Index::DataDumper) are included in the distribution.
 
 The modules can be used to index any HTML documents - whether stored as
 files, or in a database. They support the use of stopword lists, soundex
@@ -120,6 +120,8 @@ keywords, parentheses, and logical operators (OR, AND, NOT).
 =item L<HTML::Index::Store|HTML::Index::Store>
 
 =item L<HTML::Index::Store::BerkeleyDB|HTML::Index::Store::BerkeleyDB>
+
+=item L<HTML::Index::Store::DataDumper|HTML::Index::Store::DataDumper>
 
 =back
 

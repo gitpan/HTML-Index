@@ -168,8 +168,9 @@ of this module should override the methods described below, and then be passed
 as a constructor argument to the L<HTML::Index::Create|HTML::Index::Create> and
 L<HTML::Index::Search|HTML::Index::Search> modules.
 
-There is one subclass of this module provided with this distribution;
-L<HTML::Index::Store::BerkeleyDB|HTML::Index::Store::BerkeleyDB>.
+There are two subclasses of this module provided with this distribution;
+L<HTML::Index::Store::BerkeleyDB|HTML::Index::Store::BerkeleyDB> and
+L<HTML::Index::Store::DataDumper|HTML::Index::Store::DataDumper>
 
 =head1 CONSTRUCTOR OPTIONS
 
