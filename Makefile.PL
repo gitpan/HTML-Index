@@ -7,6 +7,7 @@ WriteMakefile(
     'PREREQ_PM'		=> {
         BerkeleyDB              => 0,
         Carp                    => 0,
+        Carp::Assert            => 0,
         Class::Struct           => 0,
         Compress::Zlib          => 0,
         Data::Dumper            => 0,

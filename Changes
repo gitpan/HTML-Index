@@ -25,7 +25,9 @@ Revision history for Perl extension HTML::Index.
         - another (less) major rewrite, thanks mainly to suggestions from
           william ross [will@spanner.org]. Also, now supports stemming via
           Lingua::Stem.
-Thu Jun 12 14:13:55 BST 2003
+0.14 Thu Jun 12 14:13:55 BST 2003
         - various minor changes and bug fixes, following comments from Tim 
           Heaney [theaney@cablespeed.com] and David Blumenthal 
           [david@blumenthal.com]
+0.15 Mon Jun 30 16:33:38 BST 2003
+        - added Carp::Assert to PREREQ_PM in Makefile.PL
