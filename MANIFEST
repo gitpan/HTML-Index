@@ -1,0 +1,10 @@
+Changes
+eg/indexer.pl
+eg/search.pl
+eg/wordcount.pl
+html/test.html
+Index.pm
+MANIFEST
+Makefile.PL
+README
+test.pl

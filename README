@@ -1,0 +1,53 @@
+HTML::Index
+===========
+
+Description
+-----------
+
+HTML::Index is a simple module for indexing HTML files so that they can be
+subsequently searched by keywords. It is looselly based on the indexer.pl
+script in the O'Reilly "CGI Programming with Perl, 2nd Edition" book
+(http://www.oreilly.com/catalog/cgi2/author.html).
+
+Prerequisites
+-------------
+
+This module requires the following perl modules:
+
+File::Find
+File::Path
+HTML::TreeBuilder
+DB_File
+Tie::TextDir
+Fcntl
+
+Installation
+------------
+
+The usual ...
+
+> perl Makefile.PL
+> make
+[ > make test ]
+> make install
+
+Examples
+--------
+
+eg/indexer.pl - an example script to build an index
+eg/search.pl - an example script to search an index
+eg/wordcount.pl - an example script to generate word frequency stats from an
+index
+
+Copyright
+---------
+
+Copyright (c) 2001 Ave Wrigley and Patrick Browne. All rights reserved. This
+program is free software; you can redistribute it and/or modify it under the
+same terms as Perl itself.
+
+Authors
+-------
+
+Ave Wrigley <Ave.Wrigley@itn.co.uk>
+Patrick Browne <patrick@centricview.com>
